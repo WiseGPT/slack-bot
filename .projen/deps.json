@@ -21,7 +21,7 @@
     },
     {
       "name": "aws-cdk",
-      "version": "^2.1.0",
+      "version": "^2.56.1",
       "type": "build"
     },
     {
@@ -97,8 +97,12 @@
       "type": "build"
     },
     {
+      "name": "@wisegpt/awscdk-slack-event-bus",
+      "type": "runtime"
+    },
+    {
       "name": "aws-cdk-lib",
-      "version": "^2.1.0",
+      "version": "^2.56.1",
       "type": "runtime"
     },
     {

@@ -4,13 +4,14 @@ import {
   Stack,
   StackProps,
   aws_events as Events,
-  aws_lambda as Lambda,
   aws_events_targets as EventsTargets,
 } from "aws-cdk-lib";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import { SlackEventBus } from "@wisegpt/awscdk-slack-event-bus";
 import config from "../config";
+import { CustomNodejsFunction } from "./custom-nodejs-function";
+import { resolve } from "path";
 
 const WISEGPT_BOT_SECRETS_ARN =
   "arn:aws:secretsmanager:eu-west-1:197771300946:secret:wisegpt-bot-3yGDD6";
@@ -29,18 +30,18 @@ export class MyStack extends Stack {
       tokenSecret: wisegptSecrets,
     });
 
-    const fn = new Lambda.Function(this, "EchoSLackEventLambda", {
-      runtime: Lambda.Runtime.NODEJS_18_X,
-      handler: "index.handler",
-      code: Lambda.Code.fromInline(
-        `exports.handler = async function (event, context) { console.log(JSON.stringify({ event, context })); };`
-      ),
+    const echoBackLambda = new CustomNodejsFunction(this, "EchoBackLambda", {
+      entry: resolve(__dirname, "../app/lambdas/echo-back.lambda.ts"),
+      description: "Echo back whatever he user wrote",
     });
 
     new Events.Rule(this, "SlackEventRule", {
       enabled: true,
-      eventPattern: { source: ["com.slack"] },
-      targets: [new EventsTargets.LambdaFunction(fn)],
+      eventPattern: {
+        source: ["com.slack"],
+        detailType: ["EventCallback.app_mention"],
+      },
+      targets: [new EventsTargets.LambdaFunction(echoBackLambda)],
       eventBus: slackEventBus.eventBus,
     });
 

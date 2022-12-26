@@ -1,6 +1,10 @@
 {
   "dependencies": [
     {
+      "name": "@types/aws-lambda",
+      "type": "build"
+    },
+    {
       "name": "@types/jest",
       "type": "build"
     },
@@ -95,6 +99,10 @@
     {
       "name": "typescript",
       "type": "build"
+    },
+    {
+      "name": "@slack/web-api",
+      "type": "runtime"
     },
     {
       "name": "@wisegpt/awscdk-slack-event-bus",

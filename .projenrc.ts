@@ -17,10 +17,8 @@ const project = new awscdk.AwsCdkTypeScriptApp({
   projenrcTs: true,
   release: true,
 
-  deps: ["@wisegpt/awscdk-slack-event-bus"],
-  // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
-  // devDeps: [],             /* Build dependencies for this module. */
-  // packageName: undefined,  /* The "name" in package.json. */
+  deps: ["@wisegpt/awscdk-slack-event-bus", "@slack/web-api"],
+  devDeps: ["@types/aws-lambda"],
 });
 
 project.synth();

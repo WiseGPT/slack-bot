@@ -1,4 +1,5 @@
 import type * as Lambda from "aws-lambda";
+import { KnownBlock } from "@slack/web-api";
 
 abstract class BaseLambda<TEvent = any, TResult = any> {
   protected constructor(protected readonly baseProps: { lambdaName: string }) {}
@@ -8,7 +9,6 @@ abstract class BaseLambda<TEvent = any, TResult = any> {
 
 export enum SlackEventType {
   MESSAGE = "message",
-  APP_MENTION = "app_mention",
 }
 
 type SlackEventEnvelope<T extends SlackEventType, TEventPayload> = {
@@ -18,9 +18,10 @@ type SlackEventEnvelope<T extends SlackEventType, TEventPayload> = {
   team_id: string;
   event_time: number;
   event: TEventPayload & { type: T };
+  authorizations: { is_bot?: boolean; user_id?: string }[];
 };
 
-type BaseMessageEventPayload = {
+export type SlackMessageEventPayload = {
   user: string;
   text: string;
   team: string;
@@ -28,6 +29,9 @@ type BaseMessageEventPayload = {
   ts: string;
   app_id?: string;
   thread_ts?: string;
+  blocks?: KnownBlock[];
+  // specific to message event
+  subtype?: string;
 };
 
 type SlackEventDetailMapping = {
@@ -35,14 +39,7 @@ type SlackEventDetailMapping = {
     detailType: "EventCallback.message";
     detail: SlackEventEnvelope<
       SlackEventType.MESSAGE,
-      BaseMessageEventPayload & { subtype?: string }
-    >;
-  };
-  [SlackEventType.APP_MENTION]: {
-    detailType: "EventCallback.app_mention";
-    detail: SlackEventEnvelope<
-      SlackEventType.APP_MENTION,
-      BaseMessageEventPayload
+      SlackMessageEventPayload
     >;
   };
 };

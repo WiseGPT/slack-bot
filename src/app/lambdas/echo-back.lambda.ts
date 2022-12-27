@@ -1,6 +1,7 @@
 import {
   createHandler,
   isSlackEventTypeOf,
+  SlackMessageEventPayload,
   SlackEventBridgeEvent,
   SlackEventListenerLambda,
   SlackEventType,
@@ -34,33 +35,62 @@ class EchoBackLambda extends SlackEventListenerLambda {
       }
 
       if (!messageEvent.thread_ts) {
-        console.log(
-          "bot will not do anything because message is not to a thread"
-        );
+        const firstMentionedUser =
+          EchoBackLambda.tryGetMessageStartingMention(messageEvent);
 
-        return;
+        if (
+          firstMentionedUser === undefined ||
+          firstMentionedUser.userId !== EchoBackLambda.getAuthUserId(event)
+        ) {
+          console.log(
+            "all non-thread messages should start by mentioning the bot or they won't be used"
+          );
+
+          return;
+        }
+
+        return this.createNewConversation(event, messageEvent.ts);
       }
 
       return this.replyToThread(event, messageEvent.thread_ts);
-    } else if (isSlackEventTypeOf(event, SlackEventType.APP_MENTION)) {
-      const appMentionEvent = event.detail.event;
-
-      if (appMentionEvent.thread_ts) {
-        console.log("we do not care about mentions in threads");
-
-        return;
-      }
-
-      return this.createNewConversation(event, appMentionEvent.ts);
     } else {
       console.log("unknown type of event");
     }
   }
 
+  private static tryGetMessageStartingMention(
+    appMentionEvent: SlackMessageEventPayload
+  ): { userId: string } | undefined {
+    const block: any = appMentionEvent.blocks?.[0];
+
+    if (block?.type !== "rich_text") {
+      return undefined;
+    }
+
+    const element = block.elements?.[0];
+
+    if (element?.type !== "rich_text_section") {
+      return undefined;
+    }
+
+    const userElement = element.elements?.[0];
+
+    return userElement?.type === "user"
+      ? { userId: userElement.user_id }
+      : undefined;
+  }
+
+  private static getAuthUserId(
+    event: SlackEventBridgeEvent
+  ): string | undefined {
+    const { authorizations } = event.detail;
+    const authorization = authorizations?.[0];
+
+    return authorization?.is_bot ? authorization?.user_id : undefined;
+  }
+
   private async sendEcho(
-    event: SlackEventBridgeEvent<
-      SlackEventType.MESSAGE | SlackEventType.APP_MENTION
-    >,
+    event: SlackEventBridgeEvent<SlackEventType.MESSAGE>,
     thread_ts: string,
     extra: string
   ): Promise<void> {
@@ -86,7 +116,7 @@ class EchoBackLambda extends SlackEventListenerLambda {
   }
 
   private async createNewConversation(
-    event: SlackEventBridgeEvent<SlackEventType.APP_MENTION>,
+    event: SlackEventBridgeEvent<SlackEventType.MESSAGE>,
     ts: string
   ) {
     await this.sendEcho(event, ts, "NEW_CONVERSATION");

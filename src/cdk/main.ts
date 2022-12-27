@@ -32,14 +32,14 @@ export class MyStack extends Stack {
 
     const echoBackLambda = new CustomNodejsFunction(this, "EchoBackLambda", {
       entry: resolve(__dirname, "../app/lambdas/echo-back.lambda.ts"),
-      description: "Echo back whatever he user wrote",
+      description: "Echo back whatever the user wrote",
     });
 
     new Events.Rule(this, "SlackEventRule", {
       enabled: true,
       eventPattern: {
         source: ["com.slack"],
-        detailType: ["EventCallback.message", "EventCallback.app_mention"],
+        detailType: ["EventCallback.message"],
       },
       targets: [new EventsTargets.LambdaFunction(echoBackLambda)],
       eventBus: slackEventBus.eventBus,

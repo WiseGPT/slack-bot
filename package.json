@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.109",
     "@types/jest": "^29.2.4",
-    "@types/node": "^14",
+    "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^5",
     "@typescript-eslint/parser": "^5",
     "aws-cdk": "^2.56.1",
@@ -56,6 +56,9 @@
     "@wisegpt/awscdk-slack-event-bus": "^0.0.5",
     "aws-cdk-lib": "^2.56.1",
     "constructs": "^10.0.5"
+  },
+  "engines": {
+    "node": ">= 18.12.1"
   },
   "license": "Apache-2.0",
   "version": "0.0.0",

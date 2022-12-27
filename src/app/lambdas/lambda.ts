@@ -44,7 +44,7 @@ export interface SlackEventBridgeEvent<
   > {}
 
 export function isSlackEventTypeOf<T extends SlackEventType>(
-  event: SlackEventBridgeEvent<SlackEventType>,
+  event: SlackEventBridgeEvent,
   type: T
 ): event is SlackEventBridgeEvent<T> {
   return event["detail-type"] === `EventCallback.${type}`;

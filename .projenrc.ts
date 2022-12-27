@@ -10,6 +10,8 @@ const project = new awscdk.AwsCdkTypeScriptApp({
   github: true,
   lambdaAutoDiscover: false,
 
+  minNodeVersion: "18.12.1",
+
   name: "wisegpt-bot",
   packageManager: javascript.NodePackageManager.NPM,
 

@@ -26,7 +26,12 @@ type SlackEventDetailMapping = {
     detail: SlackEventEnvelope<
       SlackEventType.APP_MENTION,
       {
+        user: string;
         text: string;
+        team: string;
+        channel: string;
+        ts: string;
+        thread_ts?: string;
       }
     >;
   };

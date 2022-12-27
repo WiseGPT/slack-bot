@@ -8,11 +8,15 @@ import {
 } from "./lambda";
 import config from "../../config";
 import { getSlackService } from "../slack/slack.service";
+import { SlackConversationDynamodbRepository } from "../dynamodb/slack-conversation-dynamodb.repository";
+import { WebClient } from "@slack/web-api";
 
 class EchoBackLambda extends SlackEventListenerLambda {
   private static readonly STRIP_MENTIONS = /<@[^>]+>\s*/g;
 
-  constructor() {
+  constructor(
+    private readonly repository = new SlackConversationDynamodbRepository()
+  ) {
     super({ lambdaName: "EchoBackLambda" });
   }
 
@@ -90,12 +94,11 @@ class EchoBackLambda extends SlackEventListenerLambda {
   }
 
   private async sendEcho(
+    slackService: WebClient,
     event: SlackEventBridgeEvent<SlackEventType.MESSAGE>,
     thread_ts: string,
     extra: string
   ): Promise<void> {
-    const slackService = await getSlackService();
-
     const { channel, user, text } = event.detail.event;
 
     const echoText = `<@${user}> [${extra}] ${text.replace(
@@ -114,14 +117,30 @@ class EchoBackLambda extends SlackEventListenerLambda {
     event: SlackEventBridgeEvent<SlackEventType.MESSAGE>,
     thread_ts: string
   ) {
-    await this.sendEcho(event, thread_ts, "REPLY");
+    const [slackService, slackConversationView] = await Promise.all([
+      getSlackService(),
+      await this.repository.getById(thread_ts),
+    ]);
+
+    if (slackConversationView?.status === "CREATED") {
+      await this.sendEcho(slackService, event, thread_ts, "REPLY");
+    }
   }
 
   private async createNewConversation(
     event: SlackEventBridgeEvent<SlackEventType.MESSAGE>,
     ts: string
   ) {
-    await this.sendEcho(event, ts, "NEW_CONVERSATION");
+    const slackService = await getSlackService();
+
+    await Promise.all([
+      this.sendEcho(slackService, event, ts, "NEW_CONVERSATION"),
+      this.repository.create({
+        threadId: ts,
+        status: "CREATED",
+        createdAt: new Date(),
+      }),
+    ]);
   }
 }
 

@@ -1,10 +1,10 @@
 import {
   App,
+  aws_events as Events,
+  aws_events_targets as EventsTargets,
   CfnOutput,
   Stack,
   StackProps,
-  aws_events as Events,
-  aws_events_targets as EventsTargets,
 } from "aws-cdk-lib";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
@@ -12,6 +12,7 @@ import { SlackEventBus } from "@wisegpt/awscdk-slack-event-bus";
 import config from "../config";
 import { CustomNodejsFunction } from "./custom-nodejs-function";
 import { resolve } from "path";
+import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
 
 const WISEGPT_BOT_SECRETS_ARN =
   "arn:aws:secretsmanager:eu-west-1:197771300946:secret:wisegpt-bot-3yGDD6";
@@ -30,15 +31,27 @@ export class MyStack extends Stack {
       tokenSecret: wisegptSecrets,
     });
 
+    const slackConversationViewTable = new Table(
+      this,
+      "SlackConversationViewTable",
+      {
+        partitionKey: { name: "threadId", type: AttributeType.STRING },
+        billingMode: BillingMode.PAY_PER_REQUEST,
+      }
+    );
+
     const echoBackLambda = new CustomNodejsFunction(this, "EchoBackLambda", {
       entry: resolve(__dirname, "../app/lambdas/echo-back.lambda.ts"),
       description: "Echo back whatever the user wrote",
       environment: {
         SLACK_SECRET_ARN: wisegptSecrets.secretArn,
+        DYNAMODB_TABLE_SLACK_CONVERSATION_VIEW:
+          slackConversationViewTable.tableName,
       },
     });
 
     wisegptSecrets.grantRead(echoBackLambda);
+    slackConversationViewTable.grantReadWriteData(echoBackLambda);
 
     new Events.Rule(this, "SlackEventRule", {
       enabled: true,

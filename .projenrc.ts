@@ -19,7 +19,11 @@ const project = new awscdk.AwsCdkTypeScriptApp({
   projenrcTs: true,
   release: true,
 
-  deps: ["@wisegpt/awscdk-slack-event-bus", "@slack/web-api"],
+  deps: [
+    "@wisegpt/awscdk-slack-event-bus",
+    "@aws-sdk/client-secrets-manager",
+    "@slack/web-api",
+  ],
   devDeps: ["@types/aws-lambda"],
 });
 

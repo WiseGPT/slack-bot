@@ -33,7 +33,12 @@ export class MyStack extends Stack {
     const echoBackLambda = new CustomNodejsFunction(this, "EchoBackLambda", {
       entry: resolve(__dirname, "../app/lambdas/echo-back.lambda.ts"),
       description: "Echo back whatever the user wrote",
+      environment: {
+        SLACK_SECRET_ARN: wisegptSecrets.secretArn,
+      },
     });
+
+    wisegptSecrets.grantRead(echoBackLambda);
 
     new Events.Rule(this, "SlackEventRule", {
       enabled: true,

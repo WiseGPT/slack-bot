@@ -7,7 +7,7 @@ import {
   SlackEventType,
 } from "./lambda";
 import config from "../../config";
-import { slackService } from "../slack/slack.service";
+import { getSlackService } from "../slack/slack.service";
 
 class EchoBackLambda extends SlackEventListenerLambda {
   private static readonly STRIP_MENTIONS = /<@[^>]+>\s*/g;
@@ -94,6 +94,8 @@ class EchoBackLambda extends SlackEventListenerLambda {
     thread_ts: string,
     extra: string
   ): Promise<void> {
+    const slackService = await getSlackService();
+
     const { channel, user, text } = event.detail.event;
 
     const echoText = `<@${user}> [${extra}] ${text.replace(

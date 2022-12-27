@@ -101,6 +101,10 @@
       "type": "build"
     },
     {
+      "name": "@aws-sdk/client-secrets-manager",
+      "type": "runtime"
+    },
+    {
       "name": "@slack/web-api",
       "type": "runtime"
     },

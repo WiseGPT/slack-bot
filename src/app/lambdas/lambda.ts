@@ -8,6 +8,7 @@ abstract class BaseLambda<TEvent = any, TResult = any> {
 
 export enum SlackEventType {
   MESSAGE = "message",
+  APP_MENTION = "app_mention",
 }
 
 type SlackEventEnvelope<T extends SlackEventType, TEventPayload> = {
@@ -19,20 +20,29 @@ type SlackEventEnvelope<T extends SlackEventType, TEventPayload> = {
   event: TEventPayload & { type: T };
 };
 
+type BaseMessageEventPayload = {
+  user: string;
+  text: string;
+  team: string;
+  channel: string;
+  ts: string;
+  app_id?: string;
+  thread_ts?: string;
+};
+
 type SlackEventDetailMapping = {
   [SlackEventType.MESSAGE]: {
     detailType: "EventCallback.message";
     detail: SlackEventEnvelope<
       SlackEventType.MESSAGE,
-      {
-        user: string;
-        text: string;
-        team: string;
-        channel: string;
-        ts: string;
-        app_id?: string;
-        thread_ts?: string;
-      }
+      BaseMessageEventPayload & { subtype?: string }
+    >;
+  };
+  [SlackEventType.APP_MENTION]: {
+    detailType: "EventCallback.app_mention";
+    detail: SlackEventEnvelope<
+      SlackEventType.APP_MENTION,
+      BaseMessageEventPayload
     >;
   };
 };

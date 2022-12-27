@@ -5,8 +5,8 @@ import {
   SlackEventListenerLambda,
   SlackEventType,
 } from "./lambda";
-import { slackService } from "../slack/slack.service";
 import config from "../../config";
+import { slackService } from "../slack/slack.service";
 
 class EchoBackLambda extends SlackEventListenerLambda {
   private static readonly STRIP_MENTIONS = /<@[^>]+>\s*/g;
@@ -16,33 +16,80 @@ class EchoBackLambda extends SlackEventListenerLambda {
   }
 
   protected async process(event: SlackEventBridgeEvent): Promise<void> {
-    if (isSlackEventTypeOf(event, SlackEventType.MESSAGE)) {
-      console.log(JSON.stringify({ event }));
-      const appMentionEvent = event.detail.event;
+    console.log(JSON.stringify({ event }));
 
-      if (appMentionEvent.app_id === config.appId) {
+    if (isSlackEventTypeOf(event, SlackEventType.MESSAGE)) {
+      const messageEvent = event.detail.event;
+
+      if (messageEvent.app_id === config.appId) {
         console.log("bot will not respond to the messages it sent");
 
         return;
       }
 
-      const { channel, user, text } = appMentionEvent;
-      const thread_ts = appMentionEvent.thread_ts ?? appMentionEvent.ts;
+      if (messageEvent.subtype) {
+        console.log("bot will not do anything for messages with subtype");
 
-      const echoText = `<@${user}> ${text.replace(
-        EchoBackLambda.STRIP_MENTIONS,
-        ""
-      )}`;
+        return;
+      }
 
-      await slackService.chat.postMessage({
-        channel,
-        thread_ts,
-        text: echoText,
-      });
+      if (!messageEvent.thread_ts) {
+        console.log(
+          "bot will not do anything because message is not to a thread"
+        );
+
+        return;
+      }
+
+      return this.replyToThread(event, messageEvent.thread_ts);
+    } else if (isSlackEventTypeOf(event, SlackEventType.APP_MENTION)) {
+      const appMentionEvent = event.detail.event;
+
+      if (appMentionEvent.thread_ts) {
+        console.log("we do not care about mentions in threads");
+
+        return;
+      }
+
+      return this.createNewConversation(event, appMentionEvent.ts);
     } else {
-      console.log(JSON.stringify({ event }));
-      console.log("unknown type of event!");
+      console.log("unknown type of event");
     }
+  }
+
+  private async sendEcho(
+    event: SlackEventBridgeEvent<
+      SlackEventType.MESSAGE | SlackEventType.APP_MENTION
+    >,
+    thread_ts: string,
+    extra: string
+  ): Promise<void> {
+    const { channel, user, text } = event.detail.event;
+
+    const echoText = `<@${user}> [${extra}] ${text.replace(
+      EchoBackLambda.STRIP_MENTIONS,
+      ""
+    )}`;
+
+    await slackService.chat.postMessage({
+      channel,
+      thread_ts,
+      text: echoText,
+    });
+  }
+
+  private async replyToThread(
+    event: SlackEventBridgeEvent<SlackEventType.MESSAGE>,
+    thread_ts: string
+  ) {
+    await this.sendEcho(event, thread_ts, "REPLY");
+  }
+
+  private async createNewConversation(
+    event: SlackEventBridgeEvent<SlackEventType.APP_MENTION>,
+    ts: string
+  ) {
+    await this.sendEcho(event, ts, "NEW_CONVERSATION");
   }
 }
 

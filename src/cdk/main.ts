@@ -39,7 +39,7 @@ export class MyStack extends Stack {
       enabled: true,
       eventPattern: {
         source: ["com.slack"],
-        detailType: ["EventCallback.message"],
+        detailType: ["EventCallback.message", "EventCallback.app_mention"],
       },
       targets: [new EventsTargets.LambdaFunction(echoBackLambda)],
       eventBus: slackEventBus.eventBus,

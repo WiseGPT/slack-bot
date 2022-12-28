@@ -1,5 +1,10 @@
 import type * as Lambda from "aws-lambda";
-import { KnownBlock } from "@slack/web-api";
+import {
+  SlackEventType,
+  SlackMessageEventWithEnvelope,
+} from "../../domain/slack-adapter/slack-adapter.dto";
+
+export type SQSEvent = Lambda.SQSEvent;
 
 abstract class BaseLambda<TEvent = any, TResult = any> {
   protected constructor(protected readonly baseProps: { lambdaName: string }) {}
@@ -7,40 +12,10 @@ abstract class BaseLambda<TEvent = any, TResult = any> {
   abstract handle(event: TEvent, context: Lambda.Context): Promise<TResult>;
 }
 
-export enum SlackEventType {
-  MESSAGE = "message",
-}
-
-type SlackEventEnvelope<T extends SlackEventType, TEventPayload> = {
-  type: "event_callback";
-  event_id: string;
-  api_app_id: string;
-  team_id: string;
-  event_time: number;
-  event: TEventPayload & { type: T };
-  authorizations: { is_bot?: boolean; user_id?: string }[];
-};
-
-export type SlackMessageEventPayload = {
-  user: string;
-  text: string;
-  team: string;
-  channel: string;
-  ts: string;
-  app_id?: string;
-  thread_ts?: string;
-  blocks?: KnownBlock[];
-  // specific to message event
-  subtype?: string;
-};
-
 type SlackEventDetailMapping = {
   [SlackEventType.MESSAGE]: {
     detailType: "EventCallback.message";
-    detail: SlackEventEnvelope<
-      SlackEventType.MESSAGE,
-      SlackMessageEventPayload
-    >;
+    detail: SlackMessageEventWithEnvelope;
   };
 };
 
@@ -58,19 +33,40 @@ export function isSlackEventTypeOf<T extends SlackEventType>(
   return event["detail-type"] === `EventCallback.${type}`;
 }
 
-abstract class EventListenerLambda<
-  T extends Lambda.EventBridgeEvent<any, any>
-> extends BaseLambda<T, void> {
-  protected abstract process(event: T, context: Lambda.Context): Promise<void>;
+export abstract class EventListenerLambda<
+  T extends Lambda.EventBridgeEvent<any, any> = Lambda.EventBridgeEvent<
+    any,
+    any
+  >
+> extends BaseLambda<T> {
+  handle(event: any, context: Lambda.Context): Promise<any> {
+    if (event.id && event["detail-type"]) {
+      return this.handleEventBridgeEvent(event, context);
+    } else if (Array.isArray(event.Records)) {
+      return this.handleSQSEvent(event, context);
+    }
 
-  handle(event: T, context: Lambda.Context): Promise<void> {
-    return this.process(event, context);
+    throw new Error("unknown error, not event bridge nor sqs event");
+  }
+
+  protected handleEventBridgeEvent(
+    _event: T,
+    _context: Lambda.Context
+  ): Promise<void> {
+    throw new Error(
+      `Lambda '${this.baseProps.lambdaName}' did not override #handleEventBridgeEvent()`
+    );
+  }
+
+  protected handleSQSEvent(
+    _event: SQSEvent,
+    _context: Lambda.Context
+  ): Promise<Lambda.SQSBatchResponse | void> {
+    throw new Error(
+      `Lambda '${this.baseProps.lambdaName}' did not override #handleSQSEvent()`
+    );
   }
 }
-
-export abstract class SlackEventListenerLambda<
-  T extends SlackEventType = SlackEventType
-> extends EventListenerLambda<SlackEventBridgeEvent<T>> {}
 
 export const createHandler =
   (lambda: BaseLambda): Lambda.Handler =>

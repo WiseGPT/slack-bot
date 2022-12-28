@@ -1,0 +1,92 @@
+import { SlackConversationDynamodbRepository } from "../../app/dynamodb/slack-conversation-dynamodb.repository";
+import { DomainEvent } from "../bus/event-bus";
+import {
+  BotResponseAdded,
+  BotResponseRequested,
+  ConversationStarted,
+} from "../conversation/conversation.dto";
+import { getSlackService } from "../../app/slack/slack.service";
+import { SlackMessageHelpers } from "../../app/slack/slack-message-helpers";
+import { SlackConversationView } from "./slack-adapter.dto";
+
+export class ConversationEventHandler {
+  constructor(
+    private readonly repository: SlackConversationDynamodbRepository = new SlackConversationDynamodbRepository()
+  ) {}
+
+  async handle(event: DomainEvent): Promise<void> {
+    switch (event.type) {
+      case "CONVERSATION_STARTED":
+        return this.handleConversationStarted(event);
+      case "BOT_RESPONSE_REQUESTED":
+        return this.handleBotResponseRequested(event);
+      case "BOT_RESPONSE_ADDED":
+        return this.handleBotResponseAdded(event);
+    }
+  }
+
+  private async handleConversationStarted(
+    event: ConversationStarted
+  ): Promise<void> {
+    await this.repository.create({
+      conversationId: event.conversationId,
+      threadId: event.metadata.threadId,
+      channel: event.metadata.channel,
+      status: "CREATED",
+      createdAt: new Date(),
+      botMessages: {},
+    });
+  }
+
+  private async handleBotResponseRequested(
+    event: BotResponseRequested
+  ): Promise<void> {
+    const [view, slackService] = await Promise.all([
+      this.getOrFailByConversationId(event.conversationId),
+      getSlackService(),
+    ]);
+
+    const response = await slackService.chat.postMessage({
+      thread_ts: view.threadId,
+      channel: view.channel,
+      ...SlackMessageHelpers.createInitialMessage(),
+    });
+
+    await this.repository.update({
+      ...view,
+      botMessages: {
+        ...view.botMessages,
+        [event.correlationId]: {
+          ts: response.ts!,
+          createdAt: new Date(),
+        },
+      },
+    });
+  }
+
+  private async handleBotResponseAdded(event: BotResponseAdded): Promise<void> {
+    const [view, slackService] = await Promise.all([
+      this.getOrFailByConversationId(event.conversationId),
+      getSlackService(),
+    ]);
+
+    const botMessage = view.botMessages[event.correlationId];
+
+    await slackService.chat.update({
+      ts: botMessage.ts,
+      channel: view.channel,
+      ...SlackMessageHelpers.updateWithResponse(event.message.text),
+    });
+  }
+
+  private async getOrFailByConversationId(
+    conversationId: string
+  ): Promise<SlackConversationView> {
+    const view = await this.repository.getByConversationId(conversationId);
+    if (!view) {
+      throw new Error("expected view to be created already");
+    }
+
+    return view;
+  }
+}

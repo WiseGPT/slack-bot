@@ -1,68 +1,79 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-} from "@aws-sdk/lib-dynamodb";
-import { SlackConversationView, ThreadId } from "../slack/slack.dto";
+import { CrudDynamodbRepository } from "./crud-dynamodb-repository";
+import { QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { SlackConversationView } from "../../domain/slack-adapter/slack-adapter.dto";
 
-export class SlackConversationDynamodbRepository {
+type DatabaseEntity = Omit<
+  SlackConversationView,
+  "createdAt" | "botMessages"
+> & {
+  botMessages: Record<string, { ts: string; createdAt: string }>;
+  createdAt: string;
+};
+
+export class SlackConversationDynamodbRepository extends CrudDynamodbRepository<
+  SlackConversationView,
+  DatabaseEntity
+> {
   private static readonly TABLE_NAME =
-    process.env.DYNAMODB_TABLE_SLACK_CONVERSATION_VIEW;
+    process.env.DYNAMODB_TABLE_SLACK_CONVERSATION_VIEW!;
+  private static readonly CONVERSATION_ID_INDEX =
+    process.env.DYNAMODB_INDEX_VIEW_CONVERSATION_ID!;
+  private static readonly PRIMARY_KEY = "threadId";
+  private static readonly CONVERSATION_ID_FIELD = "conversationId";
 
-  constructor(
-    private readonly client = DynamoDBDocumentClient.from(
-      new DynamoDBClient({})
-    )
-  ) {}
+  constructor() {
+    super({
+      tableName: SlackConversationDynamodbRepository.TABLE_NAME,
+      primaryKey: SlackConversationDynamodbRepository.PRIMARY_KEY,
+    });
+  }
 
-  async getById(
-    threadId: ThreadId
+  async getByConversationId(
+    conversationId: string
   ): Promise<SlackConversationView | undefined> {
     const result = await this.client.send(
-      new GetCommand({
-        TableName: SlackConversationDynamodbRepository.TABLE_NAME,
-        Key: { threadId },
+      new QueryCommand({
+        TableName: this.config.tableName,
+        IndexName: SlackConversationDynamodbRepository.CONVERSATION_ID_INDEX,
+        KeyConditionExpression: `${SlackConversationDynamodbRepository.CONVERSATION_ID_FIELD} = :conversationId`,
+        ExpressionAttributeValues: {
+          ":conversationId": conversationId,
+        },
       })
     );
 
-    if (!result.Item) {
+    if (!result.Items || result.Items.length < 1) {
       return undefined;
     }
 
-    return SlackConversationDynamodbRepository.fromDBItem(result.Item);
+    return this.fromDBItem(result.Items[0] as DatabaseEntity);
   }
 
-  async create(entity: SlackConversationView): Promise<void> {
-    await this.client.send(
-      new PutCommand({
-        TableName: SlackConversationDynamodbRepository.TABLE_NAME,
-        Item: SlackConversationDynamodbRepository.toDBItem(entity),
-        ConditionExpression: "attribute_not_exists(threadId)",
-      })
-    );
-  }
-
-  async update(entity: SlackConversationView): Promise<void> {
-    await this.client.send(
-      new PutCommand({
-        TableName: SlackConversationDynamodbRepository.TABLE_NAME,
-        Item: SlackConversationDynamodbRepository.toDBItem(entity),
-      })
-    );
-  }
-
-  static toDBItem(entity: SlackConversationView): any {
-    return {
-      ...entity,
-      createdAt: entity.createdAt.toISOString(),
-    };
-  }
-
-  static fromDBItem(item: any): SlackConversationView {
+  protected fromDBItem(item: DatabaseEntity): SlackConversationView {
     return {
       ...item,
       createdAt: new Date(item.createdAt),
+      botMessages: Object.entries(item.botMessages).reduce(
+        (curr, [key, { ts, createdAt }]) => ({
+          ...curr,
+          [key]: { ts, createdAt: new Date(createdAt) },
+        }),
+        {}
+      ),
+    };
+  }
+
+  protected toDBItem(entity: SlackConversationView): DatabaseEntity {
+    return {
+      ...entity,
+      createdAt: entity.createdAt.toISOString(),
+      botMessages: Object.entries(entity.botMessages).reduce(
+        (curr, [key, { ts, createdAt }]) => ({
+          ...curr,
+          [key]: { ts, createdAt: createdAt.toISOString() },
+        }),
+        {}
+      ),
     };
   }
 }

@@ -9,6 +9,7 @@ import {
 import { ConversationAggregate } from "../../domain/conversation/conversation.aggregate";
 import { TriggerBotService } from "../../domain/conversation/trigger-bot.service";
 import * as crypto from "crypto";
+import { OpenAIService } from "../openai/openai.service";
 
 function assertUnreachable(value: never): never {
   throw new Error(`expected value to be unreachable: '${value}'`);
@@ -17,7 +18,8 @@ function assertUnreachable(value: never): never {
 export class ConversationCommandHandler {
   constructor(
     private readonly eventBus: EventBus = globalEventBus,
-    private readonly repository: ConversationAggregateDynamodbRepository = new ConversationAggregateDynamodbRepository()
+    private readonly repository: ConversationAggregateDynamodbRepository = new ConversationAggregateDynamodbRepository(),
+    private readonly openAiService: OpenAIService = new OpenAIService()
   ) {}
 
   execute(cmd: ConversationCommand): Promise<void> {
@@ -66,19 +68,15 @@ export class ConversationCommandHandler {
     // next step, we want the aggregate to decide what to do
     const status = {
       isTriggered: false,
-      result: Promise.resolve({ message: "" }),
+      result: Promise.resolve<{ text: string }>({ text: "" }),
     };
 
     const correlationId = crypto.randomUUID();
     const triggerBotService: TriggerBotService = {
-      trigger(messages: Message[]) {
+      trigger: (messages: Message[]) => {
         status.isTriggered = true;
 
-        status.result = new Promise((resolve) =>
-          setTimeout(resolve, 3000)
-        ).then(() => ({
-          message: `your total message count for this thread is: ${messages.length}`,
-        }));
+        status.result = this.openAiService.askForResponse(messages);
       },
     };
 
@@ -90,18 +88,31 @@ export class ConversationCommandHandler {
     );
 
     if (status.isTriggered) {
-      const botResponse = await status.result;
+      try {
+        const botResponse = await status.result;
 
-      await this.transaction(
-        cmd.conversationId,
-        (aggregate: ConversationAggregate) => {
-          aggregate.addBotResponse({
-            type: "BOT_RESPONSE_SUCCESS",
-            message: botResponse.message,
-            correlationId,
-          });
-        }
-      );
+        await this.transaction(
+          cmd.conversationId,
+          (aggregate: ConversationAggregate) => {
+            aggregate.addBotResponse({
+              correlationId,
+              type: "BOT_RESPONSE_SUCCESS",
+              message: botResponse.text,
+            });
+          }
+        );
+      } catch (err) {
+        await this.transaction(
+          cmd.conversationId,
+          (aggregate: ConversationAggregate) => {
+            aggregate.addBotResponse({
+              correlationId,
+              type: "BOT_RESPONSE_ERROR",
+              error: err as any as Error,
+            });
+          }
+        );
+      }
     }
   }
 

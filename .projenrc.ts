@@ -1,9 +1,7 @@
 import { awscdk, javascript } from "projen";
 
-const CDK_VERSION = "2.56.1";
-
 const project = new awscdk.AwsCdkTypeScriptApp({
-  cdkVersion: CDK_VERSION,
+  cdkVersion: "2.57.0",
   defaultReleaseBranch: "main",
   appEntrypoint: "cdk/main.ts",
 
@@ -26,6 +24,7 @@ const project = new awscdk.AwsCdkTypeScriptApp({
     "@aws-sdk/lib-dynamodb",
     "@aws-sdk/client-sqs",
     "@slack/web-api",
+    "openai",
   ],
   devDeps: ["@types/aws-lambda"],
 });

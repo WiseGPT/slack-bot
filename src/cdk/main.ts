@@ -25,7 +25,7 @@ import { DeduplicationScope, Queue } from "aws-cdk-lib/aws-sqs";
 const WISEGPT_BOT_SECRETS_ARN =
   "arn:aws:secretsmanager:eu-west-1:197771300946:secret:wisegpt-bot-3yGDD6";
 const CONVERSATION_ID_INDEX_NAME = "CONVERSATION_ID_INDEX";
-const CONVERSATION_LAMBDA_TIMEOUT = Duration.seconds(10);
+const CONVERSATION_LAMBDA_TIMEOUT = Duration.seconds(15);
 
 export class MyStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
@@ -106,6 +106,7 @@ export class MyStack extends Stack {
         timeout: CONVERSATION_LAMBDA_TIMEOUT,
         environment: {
           EVENT_BUS_SQS: conversationEventSQS.queueUrl,
+          OPENAI_SECRET_ARN: wisegptSecrets.secretArn,
           DYNAMODB_TABLE_CONVERSATION_AGGREGATE:
             conversationAggregateTable.tableName,
         },
@@ -118,6 +119,7 @@ export class MyStack extends Stack {
     conversationCommandSQS.grantSendMessages(slackAdapterLambda);
 
     // conversation api permissions
+    wisegptSecrets.grantRead(conversationLambda);
     conversationAggregateTable.grantReadWriteData(conversationLambda);
     conversationEventSQS.grantSendMessages(conversationLambda);
 

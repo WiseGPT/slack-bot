@@ -110,7 +110,7 @@ export class ConversationAggregate {
         const message: Message = {
           id: messageId,
           author: { userId: BOT_USER_ID },
-          text: `unexpected error occurred: ${botResponse.error}`,
+          text: `unexpected error occurred: ${botResponse.error.message}`,
         };
 
         this.messages.push(message);

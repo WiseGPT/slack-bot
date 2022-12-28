@@ -6,7 +6,14 @@ type DatabaseEntity = Omit<
   SlackConversationView,
   "createdAt" | "botMessages"
 > & {
-  botMessages: Record<string, { ts: string; createdAt: string }>;
+  botMessages: Record<
+    string,
+    {
+      ts: string;
+      createdAt: string;
+      status: "REQUESTED" | "RESPONDED" | "PRECEDED";
+    }
+  >;
   createdAt: string;
 };
 
@@ -54,9 +61,9 @@ export class SlackConversationDynamodbRepository extends CrudDynamodbRepository<
       ...item,
       createdAt: new Date(item.createdAt),
       botMessages: Object.entries(item.botMessages).reduce(
-        (curr, [key, { ts, createdAt }]) => ({
+        (curr, [key, { ts, status, createdAt }]) => ({
           ...curr,
-          [key]: { ts, createdAt: new Date(createdAt) },
+          [key]: { ts, status, createdAt: new Date(createdAt) },
         }),
         {}
       ),
@@ -68,9 +75,9 @@ export class SlackConversationDynamodbRepository extends CrudDynamodbRepository<
       ...entity,
       createdAt: entity.createdAt.toISOString(),
       botMessages: Object.entries(entity.botMessages).reduce(
-        (curr, [key, { ts, createdAt }]) => ({
+        (curr, [key, { ts, status, createdAt }]) => ({
           ...curr,
-          [key]: { ts, createdAt: createdAt.toISOString() },
+          [key]: { ts, status, createdAt: createdAt.toISOString() },
         }),
         {}
       ),

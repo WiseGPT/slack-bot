@@ -75,7 +75,7 @@ export class ConversationCommandHandler {
         status.isTriggered = true;
 
         status.result = new Promise((resolve) =>
-          setTimeout(resolve, 1000)
+          setTimeout(resolve, 3000)
         ).then(() => ({
           message: `your total message count for this thread is: ${messages.length}`,
         }));

@@ -8,6 +8,7 @@ import {
 import { getSlackService } from "../../app/slack/slack.service";
 import { SlackMessageHelpers } from "../../app/slack/slack-message-helpers";
 import { SlackConversationView } from "./slack-adapter.dto";
+import { WebClient } from "@slack/web-api";
 
 export class ConversationEventHandler {
   constructor(
@@ -59,6 +60,7 @@ export class ConversationEventHandler {
         [event.correlationId]: {
           ts: response.ts!,
           createdAt: new Date(),
+          status: "REQUESTED",
         },
       },
     });
@@ -71,11 +73,67 @@ export class ConversationEventHandler {
     ]);
 
     const botMessage = view.botMessages[event.correlationId];
+    const messagesToPrecede = Object.entries(view.botMessages).filter(
+      ([key, message]) =>
+        message.status === "RESPONDED" && key !== event.correlationId
+    );
+
+    await Promise.all([
+      ...messagesToPrecede.map(([, message]) =>
+        this.precedeMessage(
+          slackService,
+          view.channel,
+          view.threadId,
+          message.ts
+        )
+      ),
+      slackService.chat.update({
+        ts: botMessage.ts,
+        channel: view.channel,
+        ...SlackMessageHelpers.updateWithResponse(event.message.text),
+      }),
+    ]);
+
+    await this.repository.update({
+      ...view,
+      botMessages: {
+        ...view.botMessages,
+        ...Object.fromEntries(
+          messagesToPrecede.map(([key, message]) => [
+            key,
+            { ...message, status: "PRECEDED" },
+          ])
+        ),
+        [event.correlationId]: {
+          ...botMessage,
+          status: "RESPONDED",
+        },
+      },
+    });
+  }
+
+  private async precedeMessage(
+    slackService: WebClient,
+    channel: string,
+    thread_ts: string,
+    ts: string
+  ): Promise<void> {
+    // TODO: figure out a way to update without querying history?
+    const result = await slackService.conversations.replies({
+      channel,
+      ts: thread_ts,
+      latest: ts,
+      limit: 1,
+      inclusive: true,
+    });
+
+    const { text, blocks }: any = result.messages?.[1]!;
+    const previousMessage = { text, blocks };
 
     await slackService.chat.update({
-      ts: botMessage.ts,
-      channel: view.channel,
-      ...SlackMessageHelpers.updateWithResponse(event.message.text),
+      ts,
+      channel,
+      ...SlackMessageHelpers.precedeMessage(previousMessage),
     });
   }
 

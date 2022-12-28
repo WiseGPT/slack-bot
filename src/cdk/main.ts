@@ -4,6 +4,7 @@ import {
   aws_events_targets as EventsTargets,
   aws_lambda_event_sources as LambdaEventSources,
   CfnOutput,
+  Duration,
   Stack,
   StackProps,
 } from "aws-cdk-lib";
@@ -24,6 +25,7 @@ import { DeduplicationScope, Queue } from "aws-cdk-lib/aws-sqs";
 const WISEGPT_BOT_SECRETS_ARN =
   "arn:aws:secretsmanager:eu-west-1:197771300946:secret:wisegpt-bot-3yGDD6";
 const CONVERSATION_ID_INDEX_NAME = "CONVERSATION_ID_INDEX";
+const CONVERSATION_LAMBDA_TIMEOUT = Duration.seconds(10);
 
 export class MyStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
@@ -68,6 +70,7 @@ export class MyStack extends Stack {
       deduplicationScope: DeduplicationScope.MESSAGE_GROUP,
       // TODO: figure out a better way
       contentBasedDeduplication: true,
+      visibilityTimeout: CONVERSATION_LAMBDA_TIMEOUT,
     });
 
     const conversationEventSQS = new Queue(this, "ConversationEventSQS", {
@@ -100,6 +103,7 @@ export class MyStack extends Stack {
       {
         entry: resolve(__dirname, "../app/lambdas/conversation.lambda.ts"),
         description: "Listens and processes Conversation API Commands",
+        timeout: CONVERSATION_LAMBDA_TIMEOUT,
         environment: {
           EVENT_BUS_SQS: conversationEventSQS.queueUrl,
           DYNAMODB_TABLE_CONVERSATION_AGGREGATE:

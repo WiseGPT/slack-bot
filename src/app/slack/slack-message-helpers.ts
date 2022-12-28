@@ -8,6 +8,8 @@ type UpdateMessageOutput = Required<
   Pick<ChatUpdateArguments, "text" | "blocks">
 >;
 
+type UpdateWithResponseOutput = UpdateMessageOutput;
+
 export class SlackMessageHelpers {
   static createInitialMessage(): CreateMessageOutput {
     const CREATING_RESPONSE = "Creating a response...";
@@ -36,7 +38,7 @@ export class SlackMessageHelpers {
     };
   }
 
-  static updateWithResponse(markdownBody: string): UpdateMessageOutput {
+  static updateWithResponse(markdownBody: string): UpdateWithResponseOutput {
     return {
       text: markdownBody,
       blocks: [
@@ -72,18 +74,12 @@ export class SlackMessageHelpers {
     };
   }
 
-  static updateAfterNewMessage(markdownBody: string): UpdateMessageOutput {
+  static precedeMessage(
+    previousMessage: UpdateWithResponseOutput
+  ): UpdateMessageOutput {
     return {
-      text: markdownBody,
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: markdownBody,
-          },
-        },
-      ],
+      text: previousMessage.text,
+      blocks: previousMessage.blocks.filter(({ type }) => type !== "actions"),
     };
   }
 }

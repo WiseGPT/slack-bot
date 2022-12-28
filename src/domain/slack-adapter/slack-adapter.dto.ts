@@ -38,6 +38,14 @@ export type SlackConversationView = {
   channel: string;
   status: "CREATED" | "COMPLETED";
   // correlation id to message details mapping
-  botMessages: Record<string, { ts: string; createdAt: Date }>;
+  botMessages: Record<
+    string,
+    {
+      ts: string;
+      createdAt: Date;
+      // what status the bot message is in
+      status: "REQUESTED" | "RESPONDED" | "PRECEDED";
+    }
+  >;
   createdAt: Date;
 };

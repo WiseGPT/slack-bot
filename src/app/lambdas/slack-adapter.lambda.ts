@@ -21,17 +21,41 @@ class SlackAdapterLambda extends EventListenerLambda<SlackEventBridgeEvent> {
   protected async handleEventBridgeEvent(
     event: SlackEventBridgeEvent
   ): Promise<void> {
-    if (isSlackEventTypeOf(event, SlackEventType.MESSAGE)) {
-      await this.slackEventHandler.handleSlackMessageEvent(event.detail);
-    } else {
-      console.log("unknown type of event");
+    try {
+      if (isSlackEventTypeOf(event, SlackEventType.MESSAGE)) {
+        await this.slackEventHandler.handleSlackMessageEvent(event.detail);
+      } else {
+        console.log("unknown type of event");
+      }
+    } catch (err) {
+      // TODO: add better error handling, DLQ etc.
+      console.error(
+        JSON.stringify({
+          ...this.baseProps,
+          method: "handleEventBridgeEvent",
+          // TODO: add better logger
+          err: JSON.parse(JSON.stringify(err, Object.getOwnPropertyNames(err))),
+        })
+      );
     }
   }
 
   protected async handleSQSEvent({ Records }: SQSEvent) {
-    const event: DomainEvent = JSON.parse(Records[0].body);
+    try {
+      const event: DomainEvent = JSON.parse(Records[0].body);
 
-    await this.conversationEventHandler.handle(event);
+      await this.conversationEventHandler.handle(event);
+    } catch (err) {
+      // TODO: add better error handling, DLQ etc.
+      console.error(
+        JSON.stringify({
+          ...this.baseProps,
+          method: "handleSQSEvent",
+          // TODO: add better logger
+          err: JSON.parse(JSON.stringify(err, Object.getOwnPropertyNames(err))),
+        })
+      );
+    }
   }
 }
 

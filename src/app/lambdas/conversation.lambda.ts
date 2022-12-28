@@ -10,9 +10,21 @@ class ConversationLambda extends EventListenerLambda {
   }
 
   protected async handleSQSEvent({ Records }: SQSEvent) {
-    const cmd: DomainCommand = JSON.parse(Records[0].body);
+    try {
+      const cmd: DomainCommand = JSON.parse(Records[0].body);
 
-    await this.conversationCommandHandler.execute(cmd);
+      await this.conversationCommandHandler.execute(cmd);
+    } catch (err) {
+      // TODO: add better error handling, DLQ etc.
+      console.error(
+        JSON.stringify({
+          ...this.baseProps,
+          method: "handleSQSEvent",
+          // TODO: add better logger
+          err: JSON.parse(JSON.stringify(err, Object.getOwnPropertyNames(err))),
+        })
+      );
+    }
   }
 }
 

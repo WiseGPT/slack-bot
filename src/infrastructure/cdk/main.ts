@@ -29,14 +29,14 @@ export class MyStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
 
-    const wisegptSecrets = Secret.fromSecretCompleteArn(
+    const secret = Secret.fromSecretCompleteArn(
       this,
       "WiseGPTSecrets",
       config.aws.secretArn
     );
 
     const slackEventBus = new SlackEventBus(this, "SlackEventBus", {
-      tokenSecret: wisegptSecrets,
+      tokenSecret: secret,
     });
 
     const slackConversationViewTable = new Table(
@@ -86,7 +86,7 @@ export class MyStack extends Stack {
         description:
           "Listens an processes Slack Events API events and Conversation API events",
         environment: {
-          SLACK_SECRET_ARN: wisegptSecrets.secretArn,
+          SLACK_SECRET_ARN: secret.secretArn,
           COMMAND_BUS_SQS: conversationCommandSQS.queueUrl,
           DYNAMODB_TABLE_SLACK_CONVERSATION_VIEW:
             slackConversationViewTable.tableName,
@@ -104,7 +104,7 @@ export class MyStack extends Stack {
         timeout: CONVERSATION_LAMBDA_TIMEOUT,
         environment: {
           EVENT_BUS_SQS: conversationEventSQS.queueUrl,
-          OPENAI_SECRET_ARN: wisegptSecrets.secretArn,
+          OPENAI_SECRET_ARN: secret.secretArn,
           DYNAMODB_TABLE_CONVERSATION_AGGREGATE:
             conversationAggregateTable.tableName,
         },
@@ -112,12 +112,12 @@ export class MyStack extends Stack {
     );
 
     // slack adapter permissions
-    wisegptSecrets.grantRead(slackAdapterLambda);
+    secret.grantRead(slackAdapterLambda);
     slackConversationViewTable.grantReadWriteData(slackAdapterLambda);
     conversationCommandSQS.grantSendMessages(slackAdapterLambda);
 
     // conversation api permissions
-    wisegptSecrets.grantRead(conversationLambda);
+    secret.grantRead(conversationLambda);
     conversationAggregateTable.grantReadWriteData(conversationLambda);
     conversationEventSQS.grantSendMessages(conversationLambda);
 
@@ -156,6 +156,6 @@ export class MyStack extends Stack {
 
 const app = new App();
 
-new MyStack(app, "wisegpt-bot");
+new MyStack(app, config.aws.stackName);
 
 app.synth();

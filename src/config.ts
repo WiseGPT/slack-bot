@@ -3,6 +3,7 @@ export default {
     appId: "A04G99ST35L",
   },
   aws: {
+    stackName: "wisegpt-slack-bot",
     secretArn:
       "arn:aws:secretsmanager:eu-west-1:197771300946:secret:wisegpt-bot-3yGDD6",
   },

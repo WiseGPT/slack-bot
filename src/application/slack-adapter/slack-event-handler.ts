@@ -5,6 +5,8 @@ import { SlackMessageEventWithEnvelope } from "../../domain/slack-adapter/slack-
 import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
 
 export class SlackEventHandler {
+  private static readonly STRIP_INITIAL_MENTION_REGEX = /^(\s*<@[^>]+>\s*)/;
+
   private static tryGetMessageStartingMention(
     envelope: SlackMessageEventWithEnvelope
   ): { userId: string } | undefined {
@@ -33,6 +35,10 @@ export class SlackEventHandler {
     const authorization = authorizations?.[0];
 
     return authorization?.is_bot ? authorization?.user_id : undefined;
+  }
+
+  private static stripInitialMention(text: string): string {
+    return text.replace(this.STRIP_INITIAL_MENTION_REGEX, "");
   }
 
   constructor(
@@ -91,7 +97,7 @@ export class SlackEventHandler {
         message: {
           id: event.ts,
           author: { userId: event.user },
-          text: event.text,
+          text: SlackEventHandler.stripInitialMention(event.text),
         },
       });
     }
@@ -107,7 +113,7 @@ export class SlackEventHandler {
       initialMessage: {
         id: event.ts,
         author: { userId: event.user },
-        text: event.text,
+        text: SlackEventHandler.stripInitialMention(event.text),
       },
       metadata: {
         threadId: ts,

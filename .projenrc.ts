@@ -10,6 +10,8 @@ const project = new awscdk.AwsCdkTypeScriptApp({
 
   minNodeVersion: "18.12.1",
 
+  license: "Unlicense",
+
   name: "@wisegpt/slack-bot",
   packageName: "@wisegpt/slack-bot",
   packageManager: javascript.NodePackageManager.NPM,

@@ -1,6 +1,8 @@
 # @wisegpt/slack-bot
 
-Slack Bot for communicating with WiseGPT. Uses OpenAI GPT-3 to simulate a ChatGPT like conversation.
+Slack Bot for communicating with WiseGPT. Uses OpenAI GPT-3 to simulate a ChatGPT like conversation. The GPT model is in early development and not optimized, will consume more token as the conversation gets bigger.
+
+https://user-images.githubusercontent.com/3743507/209952150-4555aee0-3f1b-4481-893a-0675a6108e3d.mp4
 
 ## Bot Features
 

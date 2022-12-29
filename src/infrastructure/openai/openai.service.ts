@@ -1,62 +1,41 @@
+import { ConversationPromptService } from "@wisegpt/gpt-conversation-prompt";
 import { Configuration, OpenAIApi } from "openai";
 import config from "../../config";
-import { Message } from "../../domain/conversation/conversation.dto";
-import { getPersonaByConfigName } from "../../domain/persona";
 import {
-  Persona,
-  SEPARATOR_TOKEN,
-} from "../../domain/persona/base-persona/base-persona.dto";
+  BOT_USER_ID,
+  Message,
+} from "../../domain/conversation/conversation.dto";
+import { getPersonaByConfigName } from "../../domain/persona";
+import { Persona } from "../../domain/persona/base-persona/base-persona.dto";
 import { OpenAiSecretsService } from "../secrets/open-ai-secrets.service";
-
-type AIResponse = {
-  text: string;
-  usage: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-};
 
 export class OpenAIService {
   constructor(
     private readonly openAiSecretsService = new OpenAiSecretsService(),
     private readonly persona: Persona = getPersonaByConfigName(
-      config.conversation.persona
+      config.conversation.personaConfigName
     )
   ) {}
 
-  async askForResponse(messages: Message[]): Promise<AIResponse> {
-    const prompt =
-      this.persona.basePrompt +
-      messages
-        .map(
-          (message) =>
-            `${
-              message.author.userId === config.bot.userId
-                ? config.bot.name
-                : "Human"
-            }: ${message.text}`
-        )
-        .join(` ${SEPARATOR_TOKEN}\n`) +
-      `\n${config.bot.name}: `;
-
-    // TODO: take out secret retrieval to outside of this class
+  async askForResponse(messages: Message[]) {
     const { apiKey } = await this.openAiSecretsService.retrieve();
-    const api = new OpenAIApi(new Configuration({ apiKey }));
+    const openAIApi = new OpenAIApi(new Configuration({ apiKey }));
+    const conversationPromptService = new ConversationPromptService(openAIApi);
 
-    const { data } = await api.createCompletion({
-      ...this.persona.baseCompletionRequest,
-      prompt,
+    return conversationPromptService.conversationCompletion({
+      prompt: {
+        conversation: {
+          messages: messages.map(({ text, author }) => ({
+            text,
+            author:
+              author.userId === BOT_USER_ID
+                ? { type: "BOT" }
+                : { type: "USER", id: author.userId },
+          })),
+        },
+        aiPersona: this.persona,
+      },
+      modelConfiguration: this.persona.modelConfiguration,
     });
-
-    const text = data.choices?.[0].text!.trim().replace(SEPARATOR_TOKEN, "");
-
-    const {
-      prompt_tokens: promptTokens,
-      completion_tokens: completionTokens,
-      total_tokens: totalTokens,
-    } = data.usage!;
-
-    return { text, usage: { promptTokens, completionTokens, totalTokens } };
   }
 }

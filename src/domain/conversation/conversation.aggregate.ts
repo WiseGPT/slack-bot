@@ -1,8 +1,8 @@
-import config from "../../config";
 import { DomainEvent } from "../bus/event-bus";
 import {
   AddUserMessageCommand,
   AIStatus,
+  BOT_USER_ID,
   ConversationEvent,
   Message,
 } from "./conversation.dto";
@@ -91,7 +91,7 @@ export class ConversationAggregate {
       case "BOT_RESPONSE_SUCCESS": {
         const message: Message = {
           id: messageId,
-          author: { userId: config.bot.userId },
+          author: { userId: BOT_USER_ID },
           text: botResponse.message,
         };
 
@@ -109,7 +109,7 @@ export class ConversationAggregate {
       case "BOT_RESPONSE_ERROR": {
         const message: Message = {
           id: messageId,
-          author: { userId: config.bot.userId },
+          author: { userId: BOT_USER_ID },
           text: `unexpected error occurred: ${botResponse.error.message}`,
         };
 

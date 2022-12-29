@@ -1,3 +1,5 @@
+export const BOT_USER_ID = "bot-user-id";
+
 export type User = {
   userId: string;
 };

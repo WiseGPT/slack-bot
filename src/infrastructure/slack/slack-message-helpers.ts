@@ -42,27 +42,28 @@ export class SlackMessageHelpers {
             text: markdownBody,
           },
         },
-        {
-          type: "actions",
-          elements: [
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "Re-generate",
-              },
-              value: "click_me_123",
-            },
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "End Conversation",
-              },
-              value: "click_me_1234",
-            },
-          ],
-        },
+        // TODO: enable actions
+        // {
+        //   type: "actions",
+        //   elements: [
+        //     {
+        //       type: "button",
+        //       text: {
+        //         type: "plain_text",
+        //         text: "Re-generate",
+        //       },
+        //       value: "click_me_123",
+        //     },
+        //     {
+        //       type: "button",
+        //       text: {
+        //         type: "plain_text",
+        //         text: "End Conversation",
+        //       },
+        //       value: "click_me_1234",
+        //     },
+        //   ],
+        // },
       ],
     };
   }

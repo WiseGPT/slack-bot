@@ -1,4 +1,3 @@
-import { WebClient } from "@slack/web-api";
 import { DomainEvent } from "../../domain/bus/event-bus";
 import {
   BotResponseAdded,
@@ -73,20 +72,20 @@ export class ConversationEventHandler {
     ]);
 
     const botMessage = view.botMessages[event.correlationId];
-    const messagesToPrecede = Object.entries(view.botMessages).filter(
-      ([key, message]) =>
-        message.status === "RESPONDED" && key !== event.correlationId
-    );
+    // const messagesToPrecede = Object.entries(view.botMessages).filter(
+    //   ([key, message]) =>
+    //     message.status === "RESPONDED" && key !== event.correlationId
+    // );
 
     await Promise.all([
-      ...messagesToPrecede.map(([, message]) =>
-        this.precedeMessage(
-          slackService,
-          view.channel,
-          view.threadId,
-          message.ts
-        )
-      ),
+      // ...messagesToPrecede.map(([, message]) =>
+      //   this.precedeMessage(
+      //     slackService,
+      //     view.channel,
+      //     view.threadId,
+      //     message.ts
+      //   )
+      // ),
       slackService.chat.update({
         ts: botMessage.ts,
         channel: view.channel,
@@ -98,12 +97,12 @@ export class ConversationEventHandler {
       ...view,
       botMessages: {
         ...view.botMessages,
-        ...Object.fromEntries(
-          messagesToPrecede.map(([key, message]) => [
-            key,
-            { ...message, status: "PRECEDED" },
-          ])
-        ),
+        // ...Object.fromEntries(
+        //   messagesToPrecede.map(([key, message]) => [
+        //     key,
+        //     { ...message, status: "PRECEDED" },
+        //   ])
+        // ),
         [event.correlationId]: {
           ...botMessage,
           status: "RESPONDED",
@@ -112,30 +111,30 @@ export class ConversationEventHandler {
     });
   }
 
-  private async precedeMessage(
-    slackService: WebClient,
-    channel: string,
-    thread_ts: string,
-    ts: string
-  ): Promise<void> {
-    // TODO: figure out a way to update without querying history?
-    const result = await slackService.conversations.replies({
-      channel,
-      ts: thread_ts,
-      latest: ts,
-      limit: 1,
-      inclusive: true,
-    });
-
-    const { text, blocks }: any = result.messages?.[1]!;
-    const previousMessage = { text, blocks };
-
-    await slackService.chat.update({
-      ts,
-      channel,
-      ...SlackMessageHelpers.precedeMessage(previousMessage),
-    });
-  }
+  // private async precedeMessage(
+  //   slackService: WebClient,
+  //   channel: string,
+  //   thread_ts: string,
+  //   ts: string
+  // ): Promise<void> {
+  //   // TODO: figure out a way to update without querying history?
+  //   const result = await slackService.conversations.replies({
+  //     channel,
+  //     ts: thread_ts,
+  //     latest: ts,
+  //     limit: 1,
+  //     inclusive: true,
+  //   });
+  //
+  //   const { text, blocks }: any = result.messages?.[1]!;
+  //   const previousMessage = { text, blocks };
+  //
+  //   await slackService.chat.update({
+  //     ts,
+  //     channel,
+  //     ...SlackMessageHelpers.precedeMessage(previousMessage),
+  //   });
+  // }
 
   private async getOrFailByConversationId(
     conversationId: string

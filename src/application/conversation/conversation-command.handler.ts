@@ -1,5 +1,5 @@
 import { EventBus, globalEventBus } from "../../domain/bus/event-bus";
-import { ConversationAggregateDynamodbRepository } from "../dynamodb/conversation-aggregate-dynamodb.repository";
+import { ConversationAggregateDynamodbRepository } from "../../infrastructure/dynamodb/conversation-aggregate-dynamodb.repository";
 import {
   AddUserMessageCommand,
   ConversationCommand,
@@ -9,7 +9,7 @@ import {
 import { ConversationAggregate } from "../../domain/conversation/conversation.aggregate";
 import { TriggerBotService } from "../../domain/conversation/trigger-bot.service";
 import * as crypto from "crypto";
-import { OpenAIService } from "../openai/openai.service";
+import { OpenAIService } from "../../infrastructure/openai/openai.service";
 
 function assertUnreachable(value: never): never {
   throw new Error(`expected value to be unreachable: '${value}'`);

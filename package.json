@@ -1,5 +1,5 @@
 {
-  "name": "wisegpt-bot",
+  "name": "@wisegpt/slack-bot",
   "scripts": {
     "build": "npx projen build",
     "bump": "npx projen bump",

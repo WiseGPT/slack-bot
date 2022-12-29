@@ -5,9 +5,9 @@ import {
   SlackEventBridgeEvent,
   SQSEvent,
 } from "./lambda";
-import { SlackEventHandler } from "../../domain/slack-adapter/slack-event-handler";
+import { SlackEventHandler } from "../../application/slack-adapter/slack-event-handler";
 import { SlackEventType } from "../../domain/slack-adapter/slack-adapter.dto";
-import { ConversationEventHandler } from "../../domain/slack-adapter/conversation-event-handler";
+import { ConversationEventHandler } from "../../application/slack-adapter/conversation-event-handler";
 import { DomainEvent } from "../../domain/bus/event-bus";
 
 class SlackAdapterLambda extends EventListenerLambda<SlackEventBridgeEvent> {

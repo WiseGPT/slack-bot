@@ -1,6 +1,3 @@
-export const BOT_USER_ID = "wisegpt";
-export const BOT_NAME = "WiseGPT";
-
 export type User = {
   userId: string;
 };

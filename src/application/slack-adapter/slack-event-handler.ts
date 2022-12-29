@@ -1,8 +1,8 @@
-import { CommandBus, globalCommandBus } from "../bus/command-bus";
-import { SlackConversationDynamodbRepository } from "../../app/dynamodb/slack-conversation-dynamodb.repository";
+import { CommandBus, globalCommandBus } from "../../domain/bus/command-bus";
+import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
 import config from "../../config";
 import crypto from "crypto";
-import { SlackMessageEventWithEnvelope } from "./slack-adapter.dto";
+import { SlackMessageEventWithEnvelope } from "../../domain/slack-adapter/slack-adapter.dto";
 
 export class SlackEventHandler {
   constructor(
@@ -15,7 +15,7 @@ export class SlackEventHandler {
   ): Promise<void> {
     const messageEvent = envelope.event;
 
-    if (messageEvent.app_id === config.appId) {
+    if (messageEvent.app_id === config.slack.appId) {
       console.log("bot will not respond to the messages it sent");
 
       return;

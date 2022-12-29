@@ -1,12 +1,12 @@
 import {
   AddUserMessageCommand,
   AIStatus,
-  BOT_USER_ID,
   ConversationEvent,
   Message,
 } from "./conversation.dto";
 import { BotResponse, TriggerBotService } from "./trigger-bot.service";
 import { DomainEvent } from "../bus/event-bus";
+import config from "../../config";
 
 function assertUnreachable(value: never): never {
   throw new Error(`expected value to be unreachable: '${value}'`);
@@ -91,7 +91,7 @@ export class ConversationAggregate {
       case "BOT_RESPONSE_SUCCESS": {
         const message: Message = {
           id: messageId,
-          author: { userId: BOT_USER_ID },
+          author: { userId: config.bot.userId },
           text: botResponse.message,
         };
 
@@ -109,7 +109,7 @@ export class ConversationAggregate {
       case "BOT_RESPONSE_ERROR": {
         const message: Message = {
           id: messageId,
-          author: { userId: BOT_USER_ID },
+          author: { userId: config.bot.userId },
           text: `unexpected error occurred: ${botResponse.error.message}`,
         };
 

@@ -11,7 +11,7 @@ import {
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import { SlackEventBus } from "@wisegpt/awscdk-slack-event-bus";
-import config from "../config";
+import config from "../../config";
 import { CustomNodejsFunction } from "./custom-nodejs-function";
 import { resolve } from "path";
 import {
@@ -22,8 +22,6 @@ import {
 } from "aws-cdk-lib/aws-dynamodb";
 import { DeduplicationScope, Queue } from "aws-cdk-lib/aws-sqs";
 
-const WISEGPT_BOT_SECRETS_ARN =
-  "arn:aws:secretsmanager:eu-west-1:197771300946:secret:wisegpt-bot-3yGDD6";
 const CONVERSATION_ID_INDEX_NAME = "CONVERSATION_ID_INDEX";
 const CONVERSATION_LAMBDA_TIMEOUT = Duration.seconds(15);
 
@@ -34,7 +32,7 @@ export class MyStack extends Stack {
     const wisegptSecrets = Secret.fromSecretCompleteArn(
       this,
       "WiseGPTSecrets",
-      WISEGPT_BOT_SECRETS_ARN
+      config.aws.secretArn
     );
 
     const slackEventBus = new SlackEventBus(this, "SlackEventBus", {
@@ -84,7 +82,7 @@ export class MyStack extends Stack {
       this,
       "SlackAdapterLambda",
       {
-        entry: resolve(__dirname, "../app/lambdas/slack-adapter.lambda.ts"),
+        entry: resolve(__dirname, "../lambdas/slack-adapter.lambda.ts"),
         description:
           "Listens an processes Slack Events API events and Conversation API events",
         environment: {
@@ -101,7 +99,7 @@ export class MyStack extends Stack {
       this,
       "ConversationLambda",
       {
-        entry: resolve(__dirname, "../app/lambdas/conversation.lambda.ts"),
+        entry: resolve(__dirname, "../lambdas/conversation.lambda.ts"),
         description: "Listens and processes Conversation API Commands",
         timeout: CONVERSATION_LAMBDA_TIMEOUT,
         environment: {
@@ -150,7 +148,7 @@ export class MyStack extends Stack {
     );
 
     new CfnOutput(this, "SlackEventRequestUrl", {
-      value: slackEventBus.slackEventsRequestUrl(config.appId),
+      value: slackEventBus.slackEventsRequestUrl(config.slack.appId),
       description: "Slack Events Request Url to use in Slack API Dashboard",
     });
   }

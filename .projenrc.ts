@@ -3,14 +3,15 @@ import { awscdk, javascript } from "projen";
 const project = new awscdk.AwsCdkTypeScriptApp({
   cdkVersion: "2.57.0",
   defaultReleaseBranch: "main",
-  appEntrypoint: "cdk/main.ts",
+  appEntrypoint: "infrastructure/cdk/main.ts",
 
   github: true,
   lambdaAutoDiscover: false,
 
   minNodeVersion: "18.12.1",
 
-  name: "wisegpt-bot",
+  name: "@wisegpt/slack-bot",
+  packageName: "@wisegpt/slack-bot",
   packageManager: javascript.NodePackageManager.NPM,
 
   prettier: true,

@@ -1,5 +1,5 @@
 import { createHandler, EventListenerLambda, SQSEvent } from "./lambda";
-import { ConversationCommandHandler } from "../conversation/conversation-command.handler";
+import { ConversationCommandHandler } from "../../application/conversation/conversation-command.handler";
 import { DomainCommand } from "../../domain/bus/command-bus";
 
 class ConversationLambda extends EventListenerLambda {

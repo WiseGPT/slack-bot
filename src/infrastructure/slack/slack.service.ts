@@ -7,11 +7,11 @@ const slackSecretsService = new SlackSecretsService();
 export async function getSlackService(): Promise<WebClient> {
   const secrets = await slackSecretsService.retrieve();
 
-  if (!secrets[config.appId]) {
-    throw new Error(`could not find secrets for appId '${config.appId}'`);
+  if (!secrets[config.slack.appId]) {
+    throw new Error(`could not find secrets for appId '${config.slack.appId}'`);
   }
 
-  const { token } = secrets[config.appId];
+  const { token } = secrets[config.slack.appId];
 
   return new WebClient(token);
 }

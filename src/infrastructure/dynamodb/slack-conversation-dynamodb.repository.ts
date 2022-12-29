@@ -1,6 +1,6 @@
-import { CrudDynamodbRepository } from "./crud-dynamodb-repository";
 import { QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { SlackConversationView } from "../../domain/slack-adapter/slack-adapter.dto";
+import { CrudDynamodbRepository } from "./crud-dynamodb-repository";
 
 type DatabaseEntity = Omit<
   SlackConversationView,

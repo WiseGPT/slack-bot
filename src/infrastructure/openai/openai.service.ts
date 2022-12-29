@@ -1,12 +1,12 @@
-import { Message } from "../../domain/conversation/conversation.dto";
 import { Configuration, OpenAIApi } from "openai";
-import { OpenAiSecretsService } from "../secrets/open-ai-secrets.service";
+import config from "../../config";
+import { Message } from "../../domain/conversation/conversation.dto";
+import { getPersonaByConfigName } from "../../domain/persona";
 import {
   Persona,
   SEPARATOR_TOKEN,
 } from "../../domain/persona/base-persona/base-persona.dto";
-import { getPersonaByConfigName } from "../../domain/persona";
-import config from "../../config";
+import { OpenAiSecretsService } from "../secrets/open-ai-secrets.service";
 
 type AIResponse = {
   text: string;

@@ -1,10 +1,40 @@
-import { CommandBus, globalCommandBus } from "../../domain/bus/command-bus";
-import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
-import config from "../../config";
 import crypto from "crypto";
+import config from "../../config";
+import { CommandBus, globalCommandBus } from "../../domain/bus/command-bus";
 import { SlackMessageEventWithEnvelope } from "../../domain/slack-adapter/slack-adapter.dto";
+import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
 
 export class SlackEventHandler {
+  private static tryGetMessageStartingMention(
+    envelope: SlackMessageEventWithEnvelope
+  ): { userId: string } | undefined {
+    const block: any = envelope.event.blocks?.[0];
+
+    if (block?.type !== "rich_text") {
+      return undefined;
+    }
+
+    const element = block.elements?.[0];
+
+    if (element?.type !== "rich_text_section") {
+      return undefined;
+    }
+
+    const userElement = element.elements?.[0];
+
+    return userElement?.type === "user"
+      ? { userId: userElement.user_id }
+      : undefined;
+  }
+
+  private static getAuthUserId({
+    authorizations,
+  }: SlackMessageEventWithEnvelope): string | undefined {
+    const authorization = authorizations?.[0];
+
+    return authorization?.is_bot ? authorization?.user_id : undefined;
+  }
+
   constructor(
     private readonly repository = new SlackConversationDynamodbRepository(),
     private readonly commandBus: CommandBus = globalCommandBus
@@ -46,36 +76,6 @@ export class SlackEventHandler {
     }
 
     return this.replyToThread(envelope, messageEvent.thread_ts);
-  }
-
-  private static tryGetMessageStartingMention(
-    envelope: SlackMessageEventWithEnvelope
-  ): { userId: string } | undefined {
-    const block: any = envelope.event.blocks?.[0];
-
-    if (block?.type !== "rich_text") {
-      return undefined;
-    }
-
-    const element = block.elements?.[0];
-
-    if (element?.type !== "rich_text_section") {
-      return undefined;
-    }
-
-    const userElement = element.elements?.[0];
-
-    return userElement?.type === "user"
-      ? { userId: userElement.user_id }
-      : undefined;
-  }
-
-  private static getAuthUserId({
-    authorizations,
-  }: SlackMessageEventWithEnvelope): string | undefined {
-    const authorization = authorizations?.[0];
-
-    return authorization?.is_bot ? authorization?.user_id : undefined;
   }
 
   private async replyToThread(

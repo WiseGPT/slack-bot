@@ -1,6 +1,6 @@
 import { WebClient } from "@slack/web-api";
-import { SlackSecretsService } from "../secrets/slack-secrets.service";
 import config from "../../config";
+import { SlackSecretsService } from "../secrets/slack-secrets.service";
 
 const slackSecretsService = new SlackSecretsService();
 

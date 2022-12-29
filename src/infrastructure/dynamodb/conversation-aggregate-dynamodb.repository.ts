@@ -1,5 +1,5 @@
-import { CrudDynamodbRepository } from "./crud-dynamodb-repository";
 import { ConversationAggregate } from "../../domain/conversation/conversation.aggregate";
+import { CrudDynamodbRepository } from "./crud-dynamodb-repository";
 
 type DatabaseEntity = Pick<
   ConversationAggregate,

@@ -1,3 +1,5 @@
+import config from "../../config";
+import { DomainEvent } from "../bus/event-bus";
 import {
   AddUserMessageCommand,
   AIStatus,
@@ -5,22 +7,12 @@ import {
   Message,
 } from "./conversation.dto";
 import { BotResponse, TriggerBotService } from "./trigger-bot.service";
-import { DomainEvent } from "../bus/event-bus";
-import config from "../../config";
 
 function assertUnreachable(value: never): never {
   throw new Error(`expected value to be unreachable: '${value}'`);
 }
 
 export class ConversationAggregate {
-  constructor(
-    public readonly conversationId: string,
-    public status: "ONGOING" | "COMPLETED",
-    public readonly messages: Message[],
-    public aiStatus: AIStatus,
-    private newEvents: ConversationEvent[] = []
-  ) {}
-
   static createConversation(
     conversationId: string,
     metadata: Record<string, string>
@@ -35,6 +27,14 @@ export class ConversationAggregate {
       [{ type: "CONVERSATION_STARTED", conversationId, metadata: metadata }]
     );
   }
+
+  constructor(
+    public readonly conversationId: string,
+    public status: "ONGOING" | "COMPLETED",
+    public readonly messages: Message[],
+    public aiStatus: AIStatus,
+    private newEvents: ConversationEvent[] = []
+  ) {}
 
   /**
    * Returns the recently appended events to the aggregate since the last load

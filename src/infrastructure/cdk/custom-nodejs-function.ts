@@ -1,9 +1,9 @@
+import { Architecture, Runtime } from "aws-cdk-lib/aws-lambda";
 import {
   NodejsFunction,
   NodejsFunctionProps,
 } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
-import { Architecture, Runtime } from "aws-cdk-lib/aws-lambda";
 
 export type CustomNodejsFunctionProps = Pick<
   NodejsFunctionProps,

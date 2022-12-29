@@ -4,7 +4,6 @@ import {
   GetCommand,
   PutCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { NativeAttributeValue } from "@aws-sdk/util-dynamodb";
 
 type CrudDynamodbRepositoryConfig = {
   tableName: string;
@@ -13,10 +12,7 @@ type CrudDynamodbRepositoryConfig = {
 
 export abstract class CrudDynamodbRepository<
   TDomainEntity,
-  TDatabaseEntity extends Record<string, NativeAttributeValue> = Record<
-    string,
-    NativeAttributeValue
-  >
+  TDatabaseEntity extends Record<string, any> = Record<string, any>
 > {
   protected constructor(
     protected readonly config: CrudDynamodbRepositoryConfig,

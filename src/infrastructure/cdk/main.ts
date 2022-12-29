@@ -1,3 +1,5 @@
+import { resolve } from "path";
+import { SlackEventBus } from "@wisegpt/awscdk-slack-event-bus";
 import {
   App,
   aws_events as Events,
@@ -8,19 +10,17 @@ import {
   Stack,
   StackProps,
 } from "aws-cdk-lib";
-import { Secret } from "aws-cdk-lib/aws-secretsmanager";
-import { Construct } from "constructs";
-import { SlackEventBus } from "@wisegpt/awscdk-slack-event-bus";
-import config from "../../config";
-import { CustomNodejsFunction } from "./custom-nodejs-function";
-import { resolve } from "path";
 import {
   AttributeType,
   BillingMode,
   ProjectionType,
   Table,
 } from "aws-cdk-lib/aws-dynamodb";
+import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { DeduplicationScope, Queue } from "aws-cdk-lib/aws-sqs";
+import { Construct } from "constructs";
+import config from "../../config";
+import { CustomNodejsFunction } from "./custom-nodejs-function";
 
 const CONVERSATION_ID_INDEX_NAME = "CONVERSATION_ID_INDEX";
 const CONVERSATION_LAMBDA_TIMEOUT = Duration.seconds(15);

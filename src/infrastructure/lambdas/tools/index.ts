@@ -3,8 +3,6 @@ export class RequestContext {
 }
 
 export class Tools {
-  private static instance: Tools | undefined;
-
   /**
    * `Index.initialize` only supposed to be used in Lambda deployments
    */
@@ -27,6 +25,8 @@ export class Tools {
 
     return this.instance;
   }
+
+  private static instance: Tools | undefined;
 
   private constructor(_requestContext: RequestContext) {}
 }

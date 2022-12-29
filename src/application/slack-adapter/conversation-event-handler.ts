@@ -1,14 +1,14 @@
-import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
+import { WebClient } from "@slack/web-api";
 import { DomainEvent } from "../../domain/bus/event-bus";
 import {
   BotResponseAdded,
   BotResponseRequested,
   ConversationStarted,
 } from "../../domain/conversation/conversation.dto";
-import { getSlackService } from "../../infrastructure/slack/slack.service";
-import { SlackMessageHelpers } from "../../infrastructure/slack/slack-message-helpers";
 import { SlackConversationView } from "../../domain/slack-adapter/slack-adapter.dto";
-import { WebClient } from "@slack/web-api";
+import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
+import { SlackMessageHelpers } from "../../infrastructure/slack/slack-message-helpers";
+import { getSlackService } from "../../infrastructure/slack/slack.service";
 
 export class ConversationEventHandler {
   constructor(

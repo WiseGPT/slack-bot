@@ -1,14 +1,14 @@
+import * as crypto from "crypto";
 import { EventBus, globalEventBus } from "../../domain/bus/event-bus";
-import { ConversationAggregateDynamodbRepository } from "../../infrastructure/dynamodb/conversation-aggregate-dynamodb.repository";
+import { ConversationAggregate } from "../../domain/conversation/conversation.aggregate";
 import {
   AddUserMessageCommand,
   ConversationCommand,
   CreateConversationCommand,
   Message,
 } from "../../domain/conversation/conversation.dto";
-import { ConversationAggregate } from "../../domain/conversation/conversation.aggregate";
 import { TriggerBotService } from "../../domain/conversation/trigger-bot.service";
-import * as crypto from "crypto";
+import { ConversationAggregateDynamodbRepository } from "../../infrastructure/dynamodb/conversation-aggregate-dynamodb.repository";
 import { OpenAIService } from "../../infrastructure/openai/openai.service";
 
 function assertUnreachable(value: never): never {

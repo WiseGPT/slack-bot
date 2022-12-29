@@ -22,6 +22,7 @@ const project = new awscdk.AwsCdkTypeScriptApp({
 
   deps: [
     "@wisegpt/awscdk-slack-event-bus",
+    "@wisegpt/gpt-conversation-prompt",
     "@aws-sdk/client-secrets-manager",
     "@aws-sdk/client-dynamodb",
     "@aws-sdk/lib-dynamodb",

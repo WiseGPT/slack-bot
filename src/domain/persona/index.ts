@@ -3,11 +3,11 @@ import { slackSoftwareEngPersona } from "./slack-software-eng/slack-software-eng
 
 const personas = [slackSoftwareEngPersona];
 
-export function getPersonaByConfigName(name: string): Persona {
-  const persona = personas.find((p) => p.name === name);
+export function getPersonaByConfigName(configName: string): Persona {
+  const persona = personas.find((p) => p.configName === configName);
 
   if (!persona) {
-    throw new Error(`unknown persona: '${name}'`);
+    throw new Error(`unknown persona config name: '${configName}'`);
   }
 
   return persona;

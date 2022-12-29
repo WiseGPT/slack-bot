@@ -1,9 +1,9 @@
-import { CreateCompletionRequest } from "openai";
+import {
+  AIPersona,
+  ModelConfiguration,
+} from "@wisegpt/gpt-conversation-prompt";
 
-export const SEPARATOR_TOKEN = "<|endofstatement|>";
-
-export type Persona = {
-  name: string;
-  basePrompt: string;
-  baseCompletionRequest: CreateCompletionRequest;
+export type Persona = AIPersona & {
+  configName: string;
+  modelConfiguration: ModelConfiguration;
 };

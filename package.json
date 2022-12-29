@@ -52,12 +52,13 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.238.0",
-    "@aws-sdk/client-secrets-manager": "^3.238.0",
-    "@aws-sdk/client-sqs": "^3.238.0",
-    "@aws-sdk/lib-dynamodb": "^3.238.0",
+    "@aws-sdk/client-dynamodb": "^3.241.0",
+    "@aws-sdk/client-secrets-manager": "^3.241.0",
+    "@aws-sdk/client-sqs": "^3.241.0",
+    "@aws-sdk/lib-dynamodb": "^3.241.0",
     "@slack/web-api": "^6.8.0",
     "@wisegpt/awscdk-slack-event-bus": "^0.0.7",
+    "@wisegpt/gpt-conversation-prompt": "^0.0.2",
     "aws-cdk-lib": "^2.58.0",
     "constructs": "^10.0.5",
     "openai": "^3.1.0"

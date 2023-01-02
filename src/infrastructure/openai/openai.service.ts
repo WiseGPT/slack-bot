@@ -22,7 +22,7 @@ export class OpenAIService {
     const openAIApi = new OpenAIApi(new Configuration({ apiKey }));
     const conversationPromptService = new ConversationPromptService(openAIApi);
 
-    return conversationPromptService.conversationCompletion({
+    return conversationPromptService.completion({
       prompt: {
         conversation: {
           messages: messages.map(({ text, author }) => ({

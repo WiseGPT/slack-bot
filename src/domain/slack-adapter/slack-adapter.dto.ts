@@ -37,6 +37,7 @@ export type SlackConversationView = {
   threadId: ThreadId;
   channel: string;
   status: "CREATED" | "COMPLETED";
+  botUserId: string;
   // correlation id to message details mapping
   botMessages: Record<
     string,

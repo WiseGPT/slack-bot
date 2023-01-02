@@ -32,6 +32,7 @@ export class ConversationEventHandler {
       conversationId: event.conversationId,
       threadId: event.metadata.threadId,
       channel: event.metadata.channel,
+      botUserId: event.metadata.botUserId,
       status: "CREATED",
       createdAt: new Date(),
       botMessages: {},
@@ -89,7 +90,10 @@ export class ConversationEventHandler {
       slackService.chat.update({
         ts: botMessage.ts,
         channel: view.channel,
-        ...SlackMessageHelpers.updateWithResponse(event.message.text),
+        ...SlackMessageHelpers.updateWithResponse({
+          markdownBody: event.message.text,
+          botUserId: view.botUserId,
+        }),
       }),
     ]);
 

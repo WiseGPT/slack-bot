@@ -1,4 +1,5 @@
 import { ChatPostMessageArguments, ChatUpdateArguments } from "@slack/web-api";
+import { prepareForSlack } from "../../domain/slack-adapter/conversation-mentions";
 
 type CreateMessageOutput = Required<
   Pick<ChatPostMessageArguments, "text" | "blocks">
@@ -31,15 +32,23 @@ export class SlackMessageHelpers {
     };
   }
 
-  static updateWithResponse(markdownBody: string): UpdateWithResponseOutput {
+  static updateWithResponse({
+    markdownBody,
+    botUserId,
+  }: {
+    markdownBody: string;
+    botUserId: string;
+  }): UpdateWithResponseOutput {
+    const text = prepareForSlack({ text: markdownBody, botUserId });
+
     return {
-      text: markdownBody,
+      text,
       blocks: [
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: markdownBody,
+            text,
           },
         },
         // TODO: enable actions

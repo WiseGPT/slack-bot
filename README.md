@@ -10,6 +10,7 @@ https://user-images.githubusercontent.com/3743507/209952150-4555aee0-3f1b-4481-8
 - Only gets involved to the conversations that start with mentioning the bot E.g. `@WiseGPT hello!`
 - No need to mention bot again for further messages in the same thread
 - Keeps conversation history per thread
+- Can keep reference of multiple actors in the same conversation.
 - Simple loading indicator is shown before calling OpenAI
 - Markdown and Slack Blocks are used for output
 

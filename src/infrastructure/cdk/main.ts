@@ -58,7 +58,8 @@ export class MyStack extends Stack {
       this,
       "ConversationAggregateTable",
       {
-        partitionKey: { name: "conversationId", type: AttributeType.STRING },
+        partitionKey: { name: "PK", type: AttributeType.STRING },
+        sortKey: { name: "SK", type: AttributeType.NUMBER },
         billingMode: BillingMode.PAY_PER_REQUEST,
       }
     );

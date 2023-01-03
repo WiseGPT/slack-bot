@@ -1,8 +1,11 @@
-import { DomainEvent } from "../bus/event-bus";
 import { AddUserMessageCommand } from "./conversation.commands";
 import { ConversationMessage } from "./conversation.dto";
-import { ConversationEvent } from "./conversation.events";
+import { ConversationEvent, ConversationStarted } from "./conversation.events";
 import { BotResponse, TriggerBotService } from "./trigger-bot.service";
+
+type DistributiveOmit<T, K extends keyof any> = T extends any
+  ? Omit<T, K>
+  : never;
 
 type AIStatus =
   | {
@@ -15,28 +18,39 @@ function assertUnreachable(value: never): never {
 }
 
 export class ConversationAggregate {
-  static createConversation(
+  static create(
     conversationId: string,
     metadata: Record<string, string>
   ): ConversationAggregate {
-    return new ConversationAggregate(
+    return new ConversationAggregate(conversationId, {
+      type: "CONVERSATION_STARTED",
       conversationId,
-      "ONGOING",
-      [],
-      {
-        status: "IDLE",
-      },
-      [{ type: "CONVERSATION_STARTED", conversationId, metadata: metadata }]
-    );
+      metadata: metadata,
+    });
   }
 
-  constructor(
+  static load(conversationId: string): ConversationAggregate {
+    return new ConversationAggregate(conversationId);
+  }
+
+  private nextEventId: number;
+  private messages: ConversationMessage[];
+  private aiStatus: AIStatus;
+
+  private newEvents: ConversationEvent[] = [];
+
+  private constructor(
     public readonly conversationId: string,
-    public status: "ONGOING" | "COMPLETED",
-    public readonly messages: ConversationMessage[],
-    public aiStatus: AIStatus,
-    private newEvents: ConversationEvent[] = []
-  ) {}
+    createEvent?: Omit<ConversationStarted, "eventId">
+  ) {
+    this.nextEventId = 0;
+    this.messages = [];
+    this.aiStatus = { status: "IDLE" };
+
+    if (createEvent) {
+      this.createAndApply(createEvent);
+    }
+  }
 
   /**
    * Returns the recently appended events to the aggregate since the last load
@@ -46,17 +60,10 @@ export class ConversationAggregate {
   }
 
   addUserMessage({ message }: AddUserMessageCommand) {
-    this.messages.push({
-      id: message.id,
-      text: message.text,
-      author: { type: "USER", id: message.author.id },
-    });
-
-    this.apply({
+    this.createAndApply({
       type: "USER_MESSAGE_ADDED",
       conversationId: this.conversationId,
-      authorUserId: message.author.id,
-      messageId: message.id,
+      message,
     });
   }
 
@@ -64,22 +71,20 @@ export class ConversationAggregate {
     correlationId: string,
     triggerBotService: TriggerBotService
   ) {
-    if (this.aiStatus.status !== "IDLE" || this.status !== "ONGOING") {
+    if (this.aiStatus.status !== "IDLE") {
       return;
     }
 
     triggerBotService.trigger(this.messages);
 
-    this.aiStatus = { status: "PROCESSING", correlationId };
-
-    this.apply({
+    this.createAndApply({
       type: "BOT_RESPONSE_REQUESTED",
       conversationId: this.conversationId,
       correlationId,
     });
   }
 
-  addBotResponse(botResponse: BotResponse) {
+  addBotResponse(botResponse: BotResponse): void {
     if (this.aiStatus.status !== "PROCESSING") {
       throw new Error("expected AI status to be Processing");
     }
@@ -91,7 +96,6 @@ export class ConversationAggregate {
     }
 
     const messageId = botResponse.correlationId;
-    this.aiStatus = { status: "IDLE" };
 
     switch (botResponse.type) {
       case "BOT_RESPONSE_SUCCESS": {
@@ -101,9 +105,7 @@ export class ConversationAggregate {
           text: botResponse.message,
         };
 
-        this.messages.push(message);
-
-        this.apply({
+        this.createAndApply({
           type: "BOT_RESPONSE_ADDED",
           conversationId: this.conversationId,
           correlationId: botResponse.correlationId,
@@ -119,9 +121,7 @@ export class ConversationAggregate {
           text: `unexpected error occurred: ${botResponse.error.message}`,
         };
 
-        this.messages.push(message);
-
-        this.apply({
+        this.createAndApply({
           type: "BOT_RESPONSE_ADDED",
           conversationId: this.conversationId,
           correlationId: botResponse.correlationId,
@@ -135,16 +135,64 @@ export class ConversationAggregate {
     }
   }
 
-  endConversation() {
-    this.status = "COMPLETED";
-
-    this.apply({
-      type: "CONVERSATION_ENDED",
-      conversationId: this.conversationId,
-    });
+  public apply(event: ConversationEvent): void {
+    return this.pApply(event, { stale: true });
   }
 
-  private apply(event: DomainEvent) {
-    this.newEvents.push(event);
+  private createAndApply(
+    event: DistributiveOmit<ConversationEvent, "eventId">
+  ): void {
+    return this.pApply(
+      {
+        eventId: this.nextEventId,
+        ...event,
+      } as ConversationEvent,
+      { stale: false }
+    );
+  }
+
+  private pApply(
+    event: ConversationEvent,
+    { stale }: { stale: boolean }
+  ): void {
+    if (event.eventId !== this.nextEventId) {
+      throw new Error("events tried to be replayed out of order");
+    }
+
+    this.nextEventId += 1;
+
+    if (!stale) {
+      this.newEvents.push(event);
+    }
+
+    switch (event.type) {
+      case "BOT_RESPONSE_ADDED": {
+        this.aiStatus = { status: "IDLE" };
+
+        this.messages.push({
+          id: event.message.id,
+          text: event.message.text,
+          author: { type: "BOT" },
+        });
+
+        return;
+      }
+      case "USER_MESSAGE_ADDED":
+        this.messages.push({
+          id: event.message.id,
+          text: event.message.text,
+          author: { type: "USER", id: event.message.author.id },
+        });
+
+        return;
+      case "BOT_RESPONSE_REQUESTED": {
+        this.aiStatus = {
+          status: "PROCESSING",
+          correlationId: event.correlationId,
+        };
+
+        return;
+      }
+    }
   }
 }

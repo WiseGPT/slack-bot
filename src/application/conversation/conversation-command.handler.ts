@@ -36,12 +36,12 @@ export class ConversationCommandHandler {
   private async executeCreateConversation(
     cmd: CreateConversationCommand
   ): Promise<void> {
-    const aggregate = ConversationAggregate.createConversation(
+    const aggregate = ConversationAggregate.create(
       cmd.conversationId,
       cmd.metadata
     );
 
-    await this.repository.create(aggregate);
+    await this.repository.save(aggregate);
 
     for (const event of aggregate.events) {
       await this.eventBus.publish(event);
@@ -120,7 +120,7 @@ export class ConversationCommandHandler {
     conversationId: string,
     work: (aggregate: ConversationAggregate) => void
   ): Promise<void> {
-    const aggregate = await this.repository.getById(conversationId);
+    const aggregate = await this.repository.load(conversationId);
     if (!aggregate) {
       throw new Error(
         `expected aggregate with id '${conversationId}' to exist`
@@ -133,7 +133,7 @@ export class ConversationCommandHandler {
       return;
     }
 
-    await this.repository.update(aggregate);
+    await this.repository.save(aggregate);
 
     for (const event of aggregate.events) {
       await this.eventBus.publish(event);

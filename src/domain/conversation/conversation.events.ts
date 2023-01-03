@@ -1,34 +1,43 @@
-import { ConversationMessage } from "./conversation.dto";
+type BaseEvent = {
+  eventId: number;
+  conversationId: string;
+};
 
-export type ConversationStarted = {
+export type ConversationStarted = BaseEvent & {
   type: "CONVERSATION_STARTED";
   conversationId: string;
   metadata: Record<string, string>;
 };
 
-export type UserMessageAdded = {
+export type UserMessageAdded = BaseEvent & {
   type: "USER_MESSAGE_ADDED";
   conversationId: string;
-  authorUserId: string;
-  messageId: string;
+  message: {
+    id: string;
+    text: string;
+    author: { id: string };
+  };
 };
 
-export type ConversationEnded = {
+export type ConversationEnded = BaseEvent & {
   type: "CONVERSATION_ENDED";
   conversationId: string;
 };
 
-export type BotResponseRequested = {
+export type BotResponseRequested = BaseEvent & {
   type: "BOT_RESPONSE_REQUESTED";
   conversationId: string;
   correlationId: string;
 };
 
-export type BotResponseAdded = {
+export type BotResponseAdded = BaseEvent & {
   type: "BOT_RESPONSE_ADDED";
   conversationId: string;
   correlationId: string;
-  message: ConversationMessage;
+  message: {
+    id: string;
+    text: string;
+  };
 };
 
 export type ConversationEvent =

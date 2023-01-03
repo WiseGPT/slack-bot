@@ -1,4 +1,4 @@
-import { Message } from "./conversation.dto";
+import { ConversationMessage } from "./conversation.dto";
 
 export type BotResponse =
   | {
@@ -9,5 +9,5 @@ export type BotResponse =
   | { type: "BOT_RESPONSE_ERROR"; correlationId: string; error: Error };
 
 export interface TriggerBotService {
-  trigger(messages: Message[]): void;
+  trigger(messages: ConversationMessage[]): void;
 }

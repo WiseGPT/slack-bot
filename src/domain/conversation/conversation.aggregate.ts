@@ -1,12 +1,14 @@
 import { DomainEvent } from "../bus/event-bus";
-import {
-  AddUserMessageCommand,
-  AIStatus,
-  BOT_USER_ID,
-  ConversationEvent,
-  Message,
-} from "./conversation.dto";
+import { AddUserMessageCommand } from "./conversation.commands";
+import { ConversationMessage } from "./conversation.dto";
+import { ConversationEvent } from "./conversation.events";
 import { BotResponse, TriggerBotService } from "./trigger-bot.service";
+
+type AIStatus =
+  | {
+      status: "IDLE";
+    }
+  | { status: "PROCESSING"; correlationId: string };
 
 function assertUnreachable(value: never): never {
   throw new Error(`expected value to be unreachable: '${value}'`);
@@ -31,7 +33,7 @@ export class ConversationAggregate {
   constructor(
     public readonly conversationId: string,
     public status: "ONGOING" | "COMPLETED",
-    public readonly messages: Message[],
+    public readonly messages: ConversationMessage[],
     public aiStatus: AIStatus,
     private newEvents: ConversationEvent[] = []
   ) {}
@@ -44,12 +46,16 @@ export class ConversationAggregate {
   }
 
   addUserMessage({ message }: AddUserMessageCommand) {
-    this.messages.push(message);
+    this.messages.push({
+      id: message.id,
+      text: message.text,
+      author: { type: "USER", id: message.author.id },
+    });
 
     this.apply({
       type: "USER_MESSAGE_ADDED",
       conversationId: this.conversationId,
-      authorUserId: message.author.userId,
+      authorUserId: message.author.id,
       messageId: message.id,
     });
   }
@@ -89,9 +95,9 @@ export class ConversationAggregate {
 
     switch (botResponse.type) {
       case "BOT_RESPONSE_SUCCESS": {
-        const message: Message = {
+        const message: ConversationMessage = {
           id: messageId,
-          author: { userId: BOT_USER_ID },
+          author: { type: "BOT" },
           text: botResponse.message,
         };
 
@@ -107,9 +113,9 @@ export class ConversationAggregate {
         return;
       }
       case "BOT_RESPONSE_ERROR": {
-        const message: Message = {
+        const message: ConversationMessage = {
           id: messageId,
-          author: { userId: BOT_USER_ID },
+          author: { type: "BOT" },
           text: `unexpected error occurred: ${botResponse.error.message}`,
         };
 

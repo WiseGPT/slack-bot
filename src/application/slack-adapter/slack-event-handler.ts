@@ -91,7 +91,7 @@ export class SlackEventHandler {
         conversationId: slackConversationView.conversationId,
         message: {
           id: event.ts,
-          author: { userId: event.user },
+          author: { id: event.user },
           text: prepareForConversationDomain({
             text: event.text,
             botUserId: slackConversationView.botUserId,
@@ -113,7 +113,7 @@ export class SlackEventHandler {
       conversationId: crypto.randomUUID(),
       initialMessage: {
         id: event.ts,
-        author: { userId: event.user },
+        author: { id: event.user },
         text: prepareForConversationDomain({ text: event.text, botUserId }),
       },
       metadata: {

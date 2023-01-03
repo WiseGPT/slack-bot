@@ -5,8 +5,8 @@ import {
   AddUserMessageCommand,
   ConversationCommand,
   CreateConversationCommand,
-  Message,
-} from "../../domain/conversation/conversation.dto";
+} from "../../domain/conversation/conversation.commands";
+import { ConversationMessage } from "../../domain/conversation/conversation.dto";
 import { TriggerBotService } from "../../domain/conversation/trigger-bot.service";
 import { ConversationAggregateDynamodbRepository } from "../../infrastructure/dynamodb/conversation-aggregate-dynamodb.repository";
 import { OpenAIService } from "../../infrastructure/openai/openai.service";
@@ -73,7 +73,7 @@ export class ConversationCommandHandler {
 
     const correlationId = crypto.randomUUID();
     const triggerBotService: TriggerBotService = {
-      trigger: (messages: Message[]) => {
+      trigger: (messages: ConversationMessage[]) => {
         status.isTriggered = true;
 
         status.result = this.openAiService.askForResponse(messages);

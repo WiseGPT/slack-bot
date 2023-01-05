@@ -1,20 +1,22 @@
-import { DomainEvent } from "../../domain/bus/event-bus";
 import {
   BotResponseAdded,
   BotResponseRequested,
+  ConversationEnded,
+  ConversationEvent,
   ConversationStarted,
 } from "../../domain/conversation/conversation.events";
 import { SlackConversationView } from "../../domain/slack-adapter/slack-adapter.dto";
 import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
 import { SlackMessageHelpers } from "../../infrastructure/slack/slack-message-helpers";
 import { getSlackService } from "../../infrastructure/slack/slack.service";
+import { WebClient } from "@slack/web-api";
 
 export class ConversationEventHandler {
   constructor(
     private readonly repository: SlackConversationDynamodbRepository = new SlackConversationDynamodbRepository()
   ) {}
 
-  async handle(event: DomainEvent): Promise<void> {
+  async handle(event: ConversationEvent): Promise<void> {
     switch (event.type) {
       case "CONVERSATION_STARTED":
         return this.handleConversationStarted(event);
@@ -22,6 +24,8 @@ export class ConversationEventHandler {
         return this.handleBotResponseRequested(event);
       case "BOT_RESPONSE_ADDED":
         return this.handleBotResponseAdded(event);
+      case "CONVERSATION_ENDED":
+        return this.handleConversationEnded(event);
     }
   }
 
@@ -72,7 +76,59 @@ export class ConversationEventHandler {
       getSlackService(),
     ]);
 
-    const botMessage = view.botMessages[event.correlationId];
+    await this.completeBotMessage({
+      view,
+      slackService,
+      botResponse: {
+        correlationId: event.correlationId,
+        message: event.message.text,
+      },
+    });
+  }
+
+  private async handleConversationEnded(
+    event: ConversationEnded
+  ): Promise<void> {
+    const [view, slackService] = await Promise.all([
+      this.getOrFailByConversationId(event.conversationId),
+      getSlackService(),
+    ]);
+
+    const updatedView: SlackConversationView = { ...view, status: "COMPLETED" };
+
+    await this.repository.update(updatedView);
+
+    if (event.reason.type === "BOT_RESPONSE_ERROR") {
+      await this.completeBotMessage({
+        view: updatedView,
+        slackService,
+        botResponse: {
+          correlationId: event.reason.correlationId,
+          message: event.reason.error.message,
+        },
+      });
+    }
+
+    await slackService.chat.postMessage({
+      thread_ts: view.threadId,
+      channel: view.channel,
+      ...SlackMessageHelpers.createConversationEndedMessage(event),
+    });
+  }
+
+  private async completeBotMessage({
+    view,
+    slackService,
+    botResponse,
+  }: {
+    view: SlackConversationView;
+    slackService: WebClient;
+    botResponse: {
+      correlationId: string;
+      message: string;
+    };
+  }): Promise<void> {
+    const botMessage = view.botMessages[botResponse.correlationId];
     // const messagesToPrecede = Object.entries(view.botMessages).filter(
     //   ([key, message]) =>
     //     message.status === "RESPONDED" && key !== event.correlationId
@@ -91,7 +147,7 @@ export class ConversationEventHandler {
         ts: botMessage.ts,
         channel: view.channel,
         ...SlackMessageHelpers.updateWithResponse({
-          markdownBody: event.message.text,
+          markdownBody: botResponse.message,
           botUserId: view.botUserId,
         }),
       }),
@@ -107,7 +163,7 @@ export class ConversationEventHandler {
         //     { ...message, status: "PRECEDED" },
         //   ])
         // ),
-        [event.correlationId]: {
+        [botResponse.correlationId]: {
           ...botMessage,
           status: "RESPONDED",
         },

@@ -1,15 +1,15 @@
 import * as crypto from "crypto";
 import { EventBus, globalEventBus } from "../../domain/bus/event-bus";
+import { ConversationAIService } from "../../domain/conversation/ai/conversation-ai.service";
 import { ConversationAggregate } from "../../domain/conversation/conversation.aggregate";
 import {
   AddUserMessageCommand,
   ConversationCommand,
   CreateConversationCommand,
+  ProcessCompletionResponseCommand,
 } from "../../domain/conversation/conversation.commands";
-import { ConversationMessage } from "../../domain/conversation/conversation.dto";
-import { TriggerBotService } from "../../domain/conversation/trigger-bot.service";
 import { ConversationAggregateDynamodbRepository } from "../../infrastructure/dynamodb/conversation-aggregate-dynamodb.repository";
-import { OpenAIService } from "../../infrastructure/openai/openai.service";
+import { OpenAILambdaInvoke } from "../../infrastructure/lambdas/invoke/open-ai-lambda-invoke";
 
 function assertUnreachable(value: never): never {
   throw new Error(`expected value to be unreachable: '${value}'`);
@@ -19,7 +19,7 @@ export class ConversationCommandHandler {
   constructor(
     private readonly eventBus: EventBus = globalEventBus,
     private readonly repository: ConversationAggregateDynamodbRepository = new ConversationAggregateDynamodbRepository(),
-    private readonly openAiService: OpenAIService = new OpenAIService()
+    private readonly conversationAIService: ConversationAIService = new OpenAILambdaInvoke()
   ) {}
 
   execute(cmd: ConversationCommand): Promise<void> {
@@ -28,6 +28,8 @@ export class ConversationCommandHandler {
         return this.executeCreateConversation(cmd);
       case "ADD_USER_MESSAGE_COMMAND":
         return this.executeAddUserMessage(cmd);
+      case "PROCESS_COMPLETION_RESPONSE_COMMAND":
+        return this.executeProcessCompletionResponse(cmd);
       default:
         return assertUnreachable(cmd);
     }
@@ -60,65 +62,35 @@ export class ConversationCommandHandler {
   ): Promise<void> {
     await this.transaction(
       cmd.conversationId,
-      (aggregate: ConversationAggregate) => {
-        aggregate.addUserMessage(cmd);
-      }
+      async (aggregate: ConversationAggregate) => aggregate.addUserMessage(cmd)
     );
-
-    // next step, we want the aggregate to decide what to do
-    const status = {
-      isTriggered: false,
-      result: Promise.resolve<{ text: string }>({ text: "" }),
-    };
-
-    const correlationId = crypto.randomUUID();
-    const triggerBotService: TriggerBotService = {
-      trigger: (messages: ConversationMessage[]) => {
-        status.isTriggered = true;
-
-        status.result = this.openAiService.askForResponse(messages);
-      },
-    };
 
     await this.transaction(
       cmd.conversationId,
-      (aggregate: ConversationAggregate) => {
-        aggregate.reactToUserMessage(correlationId, triggerBotService);
+      async (aggregate: ConversationAggregate) => {
+        const correlationId = crypto.randomUUID();
+
+        await aggregate.reactToUserMessage(
+          correlationId,
+          this.conversationAIService
+        );
       }
     );
+  }
 
-    if (status.isTriggered) {
-      try {
-        const botResponse = await status.result;
-
-        await this.transaction(
-          cmd.conversationId,
-          (aggregate: ConversationAggregate) => {
-            aggregate.addBotResponse({
-              correlationId,
-              type: "BOT_RESPONSE_SUCCESS",
-              message: botResponse.text,
-            });
-          }
-        );
-      } catch (err) {
-        await this.transaction(
-          cmd.conversationId,
-          (aggregate: ConversationAggregate) => {
-            aggregate.addBotResponse({
-              correlationId,
-              type: "BOT_RESPONSE_ERROR",
-              error: err as any as Error,
-            });
-          }
-        );
-      }
-    }
+  private async executeProcessCompletionResponse(
+    cmd: ProcessCompletionResponseCommand
+  ): Promise<void> {
+    return this.transaction(
+      cmd.conversationId,
+      async (aggregate: ConversationAggregate) =>
+        aggregate.processCompletionResponse(cmd)
+    );
   }
 
   private async transaction(
     conversationId: string,
-    work: (aggregate: ConversationAggregate) => void
+    work: (aggregate: ConversationAggregate) => Promise<void>
   ): Promise<void> {
     const aggregate = await this.repository.load(conversationId);
     if (!aggregate) {
@@ -127,7 +99,7 @@ export class ConversationCommandHandler {
       );
     }
 
-    work(aggregate);
+    await work(aggregate);
 
     if (aggregate.events.length < 1) {
       return;

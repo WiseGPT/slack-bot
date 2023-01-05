@@ -1,5 +1,5 @@
 import { ConversationCommandHandler } from "../../application/conversation/conversation-command.handler";
-import { DomainCommand } from "../../domain/bus/command-bus";
+import { ConversationCommand } from "../../domain/conversation/conversation.commands";
 import { createHandler, EventListenerLambda, SQSEvent } from "./lambda";
 
 class ConversationLambda extends EventListenerLambda {
@@ -11,7 +11,7 @@ class ConversationLambda extends EventListenerLambda {
 
   protected async handleSQSEvent({ Records }: SQSEvent) {
     try {
-      const cmd: DomainCommand = JSON.parse(Records[0].body);
+      const cmd: ConversationCommand = JSON.parse(Records[0].body);
 
       await this.conversationCommandHandler.execute(cmd);
     } catch (err) {

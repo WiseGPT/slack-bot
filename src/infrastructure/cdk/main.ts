@@ -24,6 +24,7 @@ import { CustomNodejsFunction } from "./custom-nodejs-function";
 
 const CONVERSATION_ID_INDEX_NAME = "CONVERSATION_ID_INDEX";
 const CONVERSATION_LAMBDA_TIMEOUT = Duration.seconds(15);
+const OPENAI_LAMBDA_TIMEOUT = Duration.seconds(30);
 
 export class MyStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
@@ -96,6 +97,17 @@ export class MyStack extends Stack {
       }
     );
 
+    const openAILambda = new CustomNodejsFunction(this, "OpenAILambda", {
+      entry: resolve(__dirname, "../lambdas/open-ai.lambda.ts"),
+      description:
+        "Listens and processes all OpenAI Commands like Completion and Summary",
+      timeout: OPENAI_LAMBDA_TIMEOUT,
+      environment: {
+        OPENAI_SECRET_ARN: secret.secretArn,
+        COMMAND_BUS_SQS: conversationCommandSQS.queueUrl,
+      },
+    });
+
     const conversationLambda = new CustomNodejsFunction(
       this,
       "ConversationLambda",
@@ -105,9 +117,9 @@ export class MyStack extends Stack {
         timeout: CONVERSATION_LAMBDA_TIMEOUT,
         environment: {
           EVENT_BUS_SQS: conversationEventSQS.queueUrl,
-          OPENAI_SECRET_ARN: secret.secretArn,
           DYNAMODB_TABLE_CONVERSATION_AGGREGATE:
             conversationAggregateTable.tableName,
+          OPENAI_LAMBDA_ARN: openAILambda.functionArn,
         },
       }
     );
@@ -117,10 +129,14 @@ export class MyStack extends Stack {
     slackConversationViewTable.grantReadWriteData(slackAdapterLambda);
     conversationCommandSQS.grantSendMessages(slackAdapterLambda);
 
+    // openai lambda permissions
+    secret.grantRead(openAILambda);
+    conversationCommandSQS.grantSendMessages(openAILambda);
+
     // conversation api permissions
-    secret.grantRead(conversationLambda);
     conversationAggregateTable.grantReadWriteData(conversationLambda);
     conversationEventSQS.grantSendMessages(conversationLambda);
+    openAILambda.grantInvoke(conversationLambda);
 
     // bind slack adapter to queues
     new Events.Rule(this, "SlackEventRule", {

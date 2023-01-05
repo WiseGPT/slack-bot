@@ -1,14 +1,14 @@
 import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { defaultSQSClient } from "./sqs";
 
-export type DomainCommand = any & { type: string; conversationId: string };
+export type DomainCommand = { type: string; conversationId: string };
 
-export class CommandBus {
+export class CommandBus<T extends DomainCommand> {
   private static readonly QUEUE_URL = process.env.COMMAND_BUS_SQS!;
 
   constructor(private readonly sqsClient: SQSClient = defaultSQSClient) {}
 
-  async send(cmd: DomainCommand): Promise<void> {
+  async send(cmd: T): Promise<void> {
     await this.sqsClient.send(
       new SendMessageCommand({
         QueueUrl: CommandBus.QUEUE_URL,
@@ -20,4 +20,4 @@ export class CommandBus {
   }
 }
 
-export const globalCommandBus = new CommandBus();
+export const globalCommandBus = new CommandBus<any>();

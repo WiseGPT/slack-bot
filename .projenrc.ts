@@ -27,8 +27,10 @@ const project = new awscdk.AwsCdkTypeScriptApp({
     "@aws-sdk/client-dynamodb",
     "@aws-sdk/lib-dynamodb",
     "@aws-sdk/client-sqs",
+    "@aws-sdk/client-lambda",
     "@slack/web-api",
     "openai",
+    "gpt3-tokenizer",
   ],
   devDeps: ["@types/aws-lambda"],
 });

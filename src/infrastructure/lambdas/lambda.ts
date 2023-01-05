@@ -12,6 +12,11 @@ abstract class BaseLambda<TEvent = any, TResult = any> {
   abstract handle(event: TEvent, context: Lambda.Context): Promise<TResult>;
 }
 
+export abstract class AsyncLambda<TEvent = any> extends BaseLambda<
+  TEvent,
+  void
+> {}
+
 type SlackEventDetailMapping = {
   [SlackEventType.MESSAGE]: {
     detailType: "EventCallback.message";

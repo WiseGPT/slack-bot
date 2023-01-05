@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import {
   InvocationType,
   InvokeCommand,
@@ -11,7 +12,12 @@ export class OpenAILambdaInvoke implements ConversationAIService {
 
   constructor(private readonly client = new LambdaClient({})) {}
 
-  async trigger(cmd: ConversationAICommand): Promise<void> {
+  async trigger(
+    input: Omit<ConversationAICommand, "correlationId">
+  ): Promise<{ correlationId: string }> {
+    const correlationId = crypto.randomUUID();
+    const cmd = { ...input, correlationId };
+
     const result = await this.client.send(
       new InvokeCommand({
         FunctionName: OpenAILambdaInvoke.LAMBDA_ARN,
@@ -25,5 +31,7 @@ export class OpenAILambdaInvoke implements ConversationAIService {
         `lambda returned unexpected status code '${result.StatusCode}'`
       );
     }
+
+    return { correlationId };
   }
 }

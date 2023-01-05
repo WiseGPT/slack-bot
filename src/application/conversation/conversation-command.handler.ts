@@ -1,4 +1,3 @@
-import * as crypto from "crypto";
 import { EventBus, globalEventBus } from "../../domain/bus/event-bus";
 import { ConversationAIService } from "../../domain/conversation/ai/conversation-ai.service";
 import { ConversationAggregate } from "../../domain/conversation/conversation.aggregate";
@@ -62,19 +61,8 @@ export class ConversationCommandHandler {
   ): Promise<void> {
     await this.transaction(
       cmd.conversationId,
-      async (aggregate: ConversationAggregate) => aggregate.addUserMessage(cmd)
-    );
-
-    await this.transaction(
-      cmd.conversationId,
-      async (aggregate: ConversationAggregate) => {
-        const correlationId = crypto.randomUUID();
-
-        await aggregate.reactToUserMessage(
-          correlationId,
-          this.conversationAIService
-        );
-      }
+      (aggregate: ConversationAggregate) =>
+        aggregate.addUserMessage(cmd, this.conversationAIService)
     );
   }
 

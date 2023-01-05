@@ -1,5 +1,7 @@
 import { ConversationAICommand } from "./conversation-ai.commands";
 
 export interface ConversationAIService {
-  trigger(cmd: ConversationAICommand): Promise<void>;
+  trigger(
+    cmd: Omit<ConversationAICommand, "correlationId">
+  ): Promise<{ correlationId: string }>;
 }

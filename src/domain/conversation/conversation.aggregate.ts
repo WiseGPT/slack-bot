@@ -63,7 +63,10 @@ export class ConversationAggregate {
     return this.newEvents;
   }
 
-  addUserMessage({ message }: AddUserMessageCommand) {
+  async addUserMessage(
+    { message }: AddUserMessageCommand,
+    conversationAIService: ConversationAIService
+  ): Promise<void> {
     this.assertConversationOngoing();
 
     this.createAndApply({
@@ -74,42 +77,26 @@ export class ConversationAggregate {
         approximateTokens: gpt3TokenCount(message.text),
       },
     });
-  }
 
-  async reactToUserMessage(
-    correlationId: string,
-    conversationAIService: ConversationAIService
-  ): Promise<void> {
-    this.assertConversationOngoing();
-
-    if (this.aiStatus.status !== "IDLE") {
+    // bypass triggering bot if AI is already working, or conversation ended
+    if (
+      this.isConversationAIWorking() ||
+      this.endConversationIfWentOverLimit()
+    ) {
       return;
     }
 
-    if (this.totalTokens > config.conversation.maxConversationTokens) {
-      this.createAndApply({
-        type: "CONVERSATION_ENDED",
-        conversationId: this.conversationId,
-        reason: {
-          type: "MAXIMUM_CONVERSATION_TOKENS_REACHED",
-          maxConversationTokens: config.conversation.maxConversationTokens,
-          totalTokens: this.totalTokens,
-        },
-      });
-    } else {
-      await conversationAIService.trigger({
-        type: "TRIGGER_COMPLETION_COMMAND",
-        conversationId: this.conversationId,
-        correlationId: correlationId,
-        messages: this.messages,
-      });
+    const { correlationId } = await conversationAIService.trigger({
+      type: "TRIGGER_COMPLETION_COMMAND",
+      conversationId: this.conversationId,
+      messages: this.messages,
+    });
 
-      this.createAndApply({
-        type: "BOT_RESPONSE_REQUESTED",
-        conversationId: this.conversationId,
-        correlationId,
-      });
-    }
+    this.createAndApply({
+      type: "BOT_RESPONSE_REQUESTED",
+      conversationId: this.conversationId,
+      correlationId,
+    });
   }
 
   processCompletionResponse(cmd: ProcessCompletionResponseCommand): void {
@@ -127,7 +114,7 @@ export class ConversationAggregate {
 
     switch (cmd.botResponseType) {
       case "BOT_RESPONSE_SUCCESS": {
-        return this.createAndApply({
+        this.createAndApply({
           type: "BOT_RESPONSE_ADDED",
           conversationId: this.conversationId,
           correlationId: cmd.correlationId,
@@ -137,6 +124,10 @@ export class ConversationAggregate {
             tokens: cmd.tokens,
           },
         });
+
+        this.endConversationIfWentOverLimit();
+
+        return;
       }
       case "BOT_RESPONSE_ERROR": {
         return this.createAndApply({
@@ -168,6 +159,28 @@ export class ConversationAggregate {
         `conversation is not ongoing. status: '${this.status.status}'`
       );
     }
+  }
+
+  private isConversationAIWorking(): boolean {
+    return this.aiStatus.status === "PROCESSING";
+  }
+
+  private endConversationIfWentOverLimit(): boolean {
+    if (this.totalTokens > config.conversation.maxConversationTokens) {
+      this.createAndApply({
+        type: "CONVERSATION_ENDED",
+        conversationId: this.conversationId,
+        reason: {
+          type: "MAXIMUM_CONVERSATION_TOKENS_REACHED",
+          maxConversationTokens: config.conversation.maxConversationTokens,
+          totalTokens: this.totalTokens,
+        },
+      });
+
+      return true;
+    }
+
+    return false;
   }
 
   private addConversationMessage({

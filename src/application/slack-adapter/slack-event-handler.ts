@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import config from "../../config";
 import { CommandBus, globalCommandBus } from "../../domain/bus/command-bus";
+import { ConversationCommand } from "../../domain/conversation/conversation.commands";
 import { prepareForConversationDomain } from "../../domain/slack-adapter/conversation-mentions";
 import { SlackMessageEventWithEnvelope } from "../../domain/slack-adapter/slack-adapter.dto";
 import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
@@ -38,7 +39,7 @@ export class SlackEventHandler {
 
   constructor(
     private readonly repository = new SlackConversationDynamodbRepository(),
-    private readonly commandBus: CommandBus = globalCommandBus
+    private readonly commandBus: CommandBus<ConversationCommand> = globalCommandBus
   ) {}
 
   async handleSlackMessageEvent(

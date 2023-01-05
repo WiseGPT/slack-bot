@@ -1,21 +1,21 @@
-import { AddUserMessageCommand } from "./conversation.commands";
-import { ConversationMessage } from "./conversation.dto";
-import { ConversationEvent, ConversationStarted } from "./conversation.events";
-import { BotResponse, TriggerBotService } from "./trigger-bot.service";
-
-type DistributiveOmit<T, K extends keyof any> = T extends any
-  ? Omit<T, K>
-  : never;
-
-type AIStatus =
-  | {
-      status: "IDLE";
-    }
-  | { status: "PROCESSING"; correlationId: string };
-
-function assertUnreachable(value: never): never {
-  throw new Error(`expected value to be unreachable: '${value}'`);
-}
+import config from "../../config";
+import { ConversationAIService } from "./ai/conversation-ai.service";
+import {
+  AddUserMessageCommand,
+  ProcessCompletionResponseCommand,
+} from "./conversation.commands";
+import {
+  ConversationAIStatus,
+  ConversationMessage,
+  ConversationStatus,
+  DistributiveOmit,
+} from "./conversation.dto";
+import {
+  ConversationEnded,
+  ConversationEvent,
+  ConversationStarted,
+} from "./conversation.events";
+import { gpt3TokenCount } from "./gpt3-token-count";
 
 export class ConversationAggregate {
   static create(
@@ -34,8 +34,10 @@ export class ConversationAggregate {
   }
 
   private nextEventId: number;
-  private messages: ConversationMessage[];
-  private aiStatus: AIStatus;
+  private status: ConversationStatus;
+  private readonly messages: ConversationMessage[];
+  private aiStatus: ConversationAIStatus;
+  private totalTokens: number;
 
   private newEvents: ConversationEvent[] = [];
 
@@ -44,8 +46,10 @@ export class ConversationAggregate {
     createEvent?: Omit<ConversationStarted, "eventId">
   ) {
     this.nextEventId = 0;
+    this.status = { status: "ONGOING" };
     this.messages = [];
     this.aiStatus = { status: "IDLE" };
+    this.totalTokens = 0;
 
     if (createEvent) {
       this.createAndApply(createEvent);
@@ -59,23 +63,34 @@ export class ConversationAggregate {
     return this.newEvents;
   }
 
-  addUserMessage({ message }: AddUserMessageCommand) {
+  async addUserMessage(
+    { message }: AddUserMessageCommand,
+    conversationAIService: ConversationAIService
+  ): Promise<void> {
+    this.assertConversationOngoing();
+
     this.createAndApply({
       type: "USER_MESSAGE_ADDED",
       conversationId: this.conversationId,
-      message,
+      message: {
+        ...message,
+        approximateTokens: gpt3TokenCount(message.text),
+      },
     });
-  }
 
-  reactToUserMessage(
-    correlationId: string,
-    triggerBotService: TriggerBotService
-  ) {
-    if (this.aiStatus.status !== "IDLE") {
+    // bypass triggering bot if AI is already working, or conversation ended
+    if (
+      this.isConversationAIWorking() ||
+      this.endConversationIfWentOverLimit()
+    ) {
       return;
     }
 
-    triggerBotService.trigger(this.messages);
+    const { correlationId } = await conversationAIService.trigger({
+      type: "TRIGGER_COMPLETION_COMMAND",
+      conversationId: this.conversationId,
+      messages: this.messages,
+    });
 
     this.createAndApply({
       type: "BOT_RESPONSE_REQUESTED",
@@ -84,59 +99,99 @@ export class ConversationAggregate {
     });
   }
 
-  addBotResponse(botResponse: BotResponse): void {
+  processCompletionResponse(cmd: ProcessCompletionResponseCommand): void {
+    this.assertConversationOngoing();
+
     if (this.aiStatus.status !== "PROCESSING") {
       throw new Error("expected AI status to be Processing");
     }
 
-    if (this.aiStatus.correlationId !== botResponse.correlationId) {
+    if (this.aiStatus.correlationId !== cmd.correlationId) {
       throw new Error(
-        `unknown bot response, expected response for correlation id '${this.aiStatus.correlationId}' but got '${botResponse.correlationId}'`
+        `unknown bot response, expected response for correlation id '${this.aiStatus.correlationId}' but got '${cmd.correlationId}'`
       );
     }
 
-    const messageId = botResponse.correlationId;
-
-    switch (botResponse.type) {
+    switch (cmd.botResponseType) {
       case "BOT_RESPONSE_SUCCESS": {
-        const message: ConversationMessage = {
-          id: messageId,
-          author: { type: "BOT" },
-          text: botResponse.message,
-        };
-
         this.createAndApply({
           type: "BOT_RESPONSE_ADDED",
           conversationId: this.conversationId,
-          correlationId: botResponse.correlationId,
-          message,
+          correlationId: cmd.correlationId,
+          message: {
+            id: cmd.correlationId,
+            text: cmd.message,
+            tokens: cmd.tokens,
+          },
         });
+
+        this.endConversationIfWentOverLimit();
 
         return;
       }
       case "BOT_RESPONSE_ERROR": {
-        const message: ConversationMessage = {
-          id: messageId,
-          author: { type: "BOT" },
-          text: `unexpected error occurred: ${botResponse.error.message}`,
-        };
-
-        this.createAndApply({
-          type: "BOT_RESPONSE_ADDED",
+        return this.createAndApply({
+          type: "CONVERSATION_ENDED",
           conversationId: this.conversationId,
-          correlationId: botResponse.correlationId,
-          message,
+          reason: {
+            type: "BOT_RESPONSE_ERROR",
+            correlationId: cmd.correlationId,
+            error: {
+              message: cmd.error.message,
+            },
+          },
         });
-
-        return;
       }
       default:
-        return assertUnreachable(botResponse);
+        throw new Error(
+          `unknown type of bot response: '${JSON.stringify(cmd)}'`
+        );
     }
   }
 
   public apply(event: ConversationEvent): void {
     return this.pApply(event, { stale: true });
+  }
+
+  private assertConversationOngoing(): void {
+    if (this.status.status !== "ONGOING") {
+      throw new Error(
+        `conversation is not ongoing. status: '${this.status.status}'`
+      );
+    }
+  }
+
+  private isConversationAIWorking(): boolean {
+    return this.aiStatus.status === "PROCESSING";
+  }
+
+  private endConversationIfWentOverLimit(): boolean {
+    if (this.totalTokens > config.conversation.maxConversationTokens) {
+      this.createAndApply({
+        type: "CONVERSATION_ENDED",
+        conversationId: this.conversationId,
+        reason: {
+          type: "MAXIMUM_CONVERSATION_TOKENS_REACHED",
+          maxConversationTokens: config.conversation.maxConversationTokens,
+          totalTokens: this.totalTokens,
+        },
+      });
+
+      return true;
+    }
+
+    return false;
+  }
+
+  private addConversationMessage({
+    message,
+    tokens,
+  }: {
+    message: ConversationMessage;
+    tokens: number;
+  }): void {
+    this.messages.push(message);
+    this.totalTokens += tokens;
   }
 
   private createAndApply(
@@ -169,27 +224,54 @@ export class ConversationAggregate {
       case "BOT_RESPONSE_ADDED": {
         this.aiStatus = { status: "IDLE" };
 
-        this.messages.push({
-          id: event.message.id,
-          text: event.message.text,
-          author: { type: "BOT" },
+        return this.addConversationMessage({
+          message: {
+            id: event.message.id,
+            text: event.message.text,
+            author: { type: "BOT" },
+          },
+          tokens: event.message.tokens,
         });
-
-        return;
+      }
+      case "CONVERSATION_ENDED": {
+        return this.applyConversationEnded(event);
       }
       case "USER_MESSAGE_ADDED":
-        this.messages.push({
-          id: event.message.id,
-          text: event.message.text,
-          author: { type: "USER", id: event.message.author.id },
+        return this.addConversationMessage({
+          message: {
+            id: event.message.id,
+            text: event.message.text,
+            author: { type: "USER", id: event.message.author.id },
+          },
+          tokens: event.message.approximateTokens,
         });
-
-        return;
       case "BOT_RESPONSE_REQUESTED": {
         this.aiStatus = {
           status: "PROCESSING",
           correlationId: event.correlationId,
         };
+
+        return;
+      }
+    }
+  }
+
+  private applyConversationEnded(event: ConversationEnded): void {
+    switch (event.reason.type) {
+      case "MAXIMUM_CONVERSATION_TOKENS_REACHED": {
+        this.status = {
+          status: "ENDED",
+        };
+
+        return;
+      }
+      case "BOT_RESPONSE_ERROR": {
+        this.status = {
+          status: "ERROR",
+          message: `bot response error: ${event.reason.error.message}`,
+        };
+
+        this.aiStatus = { status: "IDLE" };
 
         return;
       }

@@ -1,4 +1,5 @@
 import { ChatPostMessageArguments, ChatUpdateArguments } from "@slack/web-api";
+import { ConversationEnded } from "../../domain/conversation/conversation.events";
 import { prepareForSlack } from "../../domain/slack-adapter/conversation-mentions";
 
 type CreateMessageOutput = Required<
@@ -83,6 +84,27 @@ export class SlackMessageHelpers {
     return {
       text: previousMessage.text,
       blocks: previousMessage.blocks.filter(({ type }) => type !== "actions"),
+    };
+  }
+
+  static createConversationEndedMessage(
+    event: ConversationEnded
+  ): CreateMessageOutput {
+    const FINISHED_TEXT = `:checkered_flag: conversation ended with reason: ${event.reason.type}`;
+
+    return {
+      text: FINISHED_TEXT,
+      blocks: [
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: FINISHED_TEXT,
+            },
+          ],
+        },
+      ],
     };
   }
 }

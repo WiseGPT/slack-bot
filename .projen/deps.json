@@ -105,6 +105,10 @@
       "type": "runtime"
     },
     {
+      "name": "@aws-sdk/client-lambda",
+      "type": "runtime"
+    },
+    {
       "name": "@aws-sdk/client-secrets-manager",
       "type": "runtime"
     },
@@ -136,6 +140,10 @@
     {
       "name": "constructs",
       "version": "^10.0.5",
+      "type": "runtime"
+    },
+    {
+      "name": "gpt3-tokenizer",
       "type": "runtime"
     },
     {

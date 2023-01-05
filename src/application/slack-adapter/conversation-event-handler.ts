@@ -1,3 +1,4 @@
+import { WebClient } from "@slack/web-api";
 import {
   BotResponseAdded,
   BotResponseRequested,
@@ -9,7 +10,6 @@ import { SlackConversationView } from "../../domain/slack-adapter/slack-adapter.
 import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
 import { SlackMessageHelpers } from "../../infrastructure/slack/slack-message-helpers";
 import { getSlackService } from "../../infrastructure/slack/slack.service";
-import { WebClient } from "@slack/web-api";
 
 export class ConversationEventHandler {
   constructor(

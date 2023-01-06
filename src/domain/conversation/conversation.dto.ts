@@ -9,11 +9,16 @@ export type ConversationStatus =
   | { status: "ENDED" }
   | { status: "ERROR"; message: string };
 
-export type ConversationAIStatus =
-  | {
-      status: "IDLE";
-    }
-  | { status: "PROCESSING"; correlationId: string };
+export type ConversationAIStatus = {
+  completion:
+    | {
+        status: "IDLE";
+      }
+    | { status: "PROCESSING"; correlationId: string };
+  summary:
+    | { status: "IDLE" }
+    | { status: "PROCESSING"; correlationId: string; lastMessageId: string };
+};
 
 export type ConversationMessage = Message & {
   id: string;

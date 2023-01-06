@@ -1,6 +1,7 @@
 import {
+  Conversation,
   ConversationCompleteOutput,
-  Message,
+  ConversationSummaryOutput,
 } from "@wisegpt/gpt-conversation-prompt";
 import config from "../../config";
 import { getPersonaByConfigName } from "../../domain/persona";
@@ -15,18 +16,30 @@ export class OpenAIService {
     )
   ) {}
 
-  async completion(messages: Message[]): Promise<ConversationCompleteOutput> {
+  async completion(
+    conversation: Conversation
+  ): Promise<ConversationCompleteOutput> {
     const conversationPromptService =
       await this.conversationPromptServiceFactory.createWithCache();
 
     return conversationPromptService.completion({
       prompt: {
-        conversation: {
-          messages: messages.map(({ text, author }) => ({
-            text,
-            author,
-          })),
-        },
+        conversation: conversation,
+        aiPersona: this.persona,
+      },
+      modelConfiguration: this.persona.modelConfiguration,
+    });
+  }
+
+  async summary(
+    conversation: Conversation
+  ): Promise<ConversationSummaryOutput> {
+    const conversationPromptService =
+      await this.conversationPromptServiceFactory.createWithCache();
+
+    return conversationPromptService.summary({
+      prompt: {
+        conversation: conversation,
         aiPersona: this.persona,
       },
       modelConfiguration: this.persona.modelConfiguration,

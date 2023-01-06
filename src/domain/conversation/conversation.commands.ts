@@ -20,7 +20,7 @@ export type CreateConversationCommand = BaseCommand & {
 export type ProcessCompletionResponseCommand =
   | (BaseCommand & {
       type: "PROCESS_COMPLETION_RESPONSE_COMMAND";
-      botResponseType: "BOT_RESPONSE_SUCCESS";
+      responseType: "BOT_COMPLETION_SUCCESS";
       correlationId: string;
       message: string;
       messageTokens: number;
@@ -28,7 +28,25 @@ export type ProcessCompletionResponseCommand =
     })
   | (BaseCommand & {
       type: "PROCESS_COMPLETION_RESPONSE_COMMAND";
-      botResponseType: "BOT_RESPONSE_ERROR";
+      responseType: "BOT_COMPLETION_ERROR";
+      correlationId: string;
+      error: {
+        message: string;
+      };
+    });
+
+export type ProcessSummaryResponseCommand =
+  | (BaseCommand & {
+      type: "PROCESS_SUMMARY_RESPONSE_COMMAND";
+      responseType: "BOT_SUMMARY_SUCCESS";
+      correlationId: string;
+      summary: string;
+      summaryTokens: number;
+      totalTokensSpent: number;
+    })
+  | (BaseCommand & {
+      type: "PROCESS_SUMMARY_RESPONSE_COMMAND";
+      responseType: "BOT_SUMMARY_ERROR";
       correlationId: string;
       error: {
         message: string;
@@ -38,4 +56,5 @@ export type ProcessCompletionResponseCommand =
 export type ConversationCommand =
   | AddUserMessageCommand
   | CreateConversationCommand
-  | ProcessCompletionResponseCommand;
+  | ProcessCompletionResponseCommand
+  | ProcessSummaryResponseCommand;

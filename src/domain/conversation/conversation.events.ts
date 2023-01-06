@@ -18,8 +18,8 @@ export type UserMessageAdded = BaseEvent & {
   };
 };
 
-export type BotResponseRequested = BaseEvent & {
-  type: "BOT_RESPONSE_REQUESTED";
+export type BotCompletionRequested = BaseEvent & {
+  type: "BOT_COMPLETION_REQUESTED";
   correlationId: string;
 };
 
@@ -34,6 +34,20 @@ export type BotResponseAdded = BaseEvent & {
   totalTokensSpent: number;
 };
 
+export type BotSummaryRequested = BaseEvent & {
+  type: "BOT_SUMMARY_REQUESTED";
+  correlationId: string;
+  lastMessageId: string;
+};
+
+export type BotSummaryAdded = BaseEvent & {
+  type: "BOT_SUMMARY_ADDED";
+  correlationId: string;
+  summary: string;
+  summaryTokens: number;
+  totalTokensSpent: number;
+};
+
 export type ConversationEnded = BaseEvent & {
   type: "CONVERSATION_ENDED";
   reason:
@@ -43,7 +57,12 @@ export type ConversationEnded = BaseEvent & {
         totalTokensSpent: number;
       }
     | {
-        type: "BOT_RESPONSE_ERROR";
+        type: "BOT_COMPLETION_ERROR";
+        correlationId: string;
+        error: { message: string };
+      }
+    | {
+        type: "BOT_SUMMARY_ERROR";
         correlationId: string;
         error: { message: string };
       };
@@ -52,6 +71,8 @@ export type ConversationEnded = BaseEvent & {
 export type ConversationEvent =
   | ConversationStarted
   | UserMessageAdded
-  | BotResponseRequested
+  | BotCompletionRequested
   | BotResponseAdded
+  | BotSummaryRequested
+  | BotSummaryAdded
   | ConversationEnded;

@@ -6,6 +6,7 @@ import { CommandBus, globalCommandBus } from "../../domain/bus/command-bus";
 import {
   ConversationAICommand,
   TriggerCompletionCommand,
+  TriggerSummaryCommand,
 } from "../../domain/conversation/ai/conversation-ai.commands";
 import { ConversationCommand } from "../../domain/conversation/conversation.commands";
 import { OpenAIService } from "../../infrastructure/openai/openai.service";
@@ -21,6 +22,9 @@ export class OpenAICommandHandler {
       case "TRIGGER_COMPLETION_COMMAND": {
         return this.executeTriggerCompletion(cmd);
       }
+      case "TRIGGER_SUMMARY_COMMAND": {
+        return this.executeTriggerSummary(cmd);
+      }
       default:
         throw new Error(`unknown type of command: ${JSON.stringify(cmd)}`);
     }
@@ -30,11 +34,26 @@ export class OpenAICommandHandler {
     cmd: TriggerCompletionCommand
   ): Promise<void> {
     try {
-      const { text, usage } = await this.openAIService.completion(cmd.messages);
+      // TODO: make debug logging better and count usage with proper metrics
+      console.log(
+        JSON.stringify({
+          cmd: {
+            ...cmd,
+            conversation: {
+              summarySize: cmd.conversation.summary?.length,
+              messagesCount: cmd.conversation.messages.length,
+            },
+          },
+        })
+      );
+
+      const { text, usage } = await this.openAIService.completion(
+        cmd.conversation
+      );
 
       await this.conversationCommandBus.send({
         type: "PROCESS_COMPLETION_RESPONSE_COMMAND",
-        botResponseType: "BOT_RESPONSE_SUCCESS",
+        responseType: "BOT_COMPLETION_SUCCESS",
         conversationId: cmd.conversationId,
         correlationId: cmd.correlationId,
         message: text,
@@ -46,7 +65,52 @@ export class OpenAICommandHandler {
     } catch (err: any) {
       await this.conversationCommandBus.send({
         type: "PROCESS_COMPLETION_RESPONSE_COMMAND",
-        botResponseType: "BOT_RESPONSE_ERROR",
+        responseType: "BOT_COMPLETION_ERROR",
+        conversationId: cmd.conversationId,
+        correlationId: cmd.correlationId,
+        error: {
+          message: err.message,
+        },
+      });
+    }
+  }
+
+  private async executeTriggerSummary(
+    cmd: TriggerSummaryCommand
+  ): Promise<void> {
+    try {
+      // TODO: make debug logging better and count usage with proper metrics
+      console.log(
+        JSON.stringify({
+          cmd: {
+            ...cmd,
+            conversation: {
+              summarySize: cmd.conversation.summary?.length,
+              messagesCount: cmd.conversation.messages.length,
+            },
+          },
+        })
+      );
+
+      const { summary, usage } = await this.openAIService.summary(
+        cmd.conversation
+      );
+
+      await this.conversationCommandBus.send({
+        type: "PROCESS_SUMMARY_RESPONSE_COMMAND",
+        responseType: "BOT_SUMMARY_SUCCESS",
+        conversationId: cmd.conversationId,
+        correlationId: cmd.correlationId,
+        summary,
+        // We rely on the fact that only 1 completion is done, this number could be wrong
+        // if we used `best_of` and `n` parameters.
+        summaryTokens: usage.completionTokens,
+        totalTokensSpent: usage.totalTokens,
+      });
+    } catch (err: any) {
+      await this.conversationCommandBus.send({
+        type: "PROCESS_SUMMARY_RESPONSE_COMMAND",
+        responseType: "BOT_SUMMARY_ERROR",
         conversationId: cmd.conversationId,
         correlationId: cmd.correlationId,
         error: {

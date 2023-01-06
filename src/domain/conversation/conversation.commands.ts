@@ -23,8 +23,8 @@ export type ProcessCompletionResponseCommand =
       botResponseType: "BOT_RESPONSE_SUCCESS";
       correlationId: string;
       message: string;
-      // how many tokens is the `message`
-      tokens: number;
+      messageTokens: number;
+      totalTokensSpent: number;
     })
   | (BaseCommand & {
       type: "PROCESS_COMPLETION_RESPONSE_COMMAND";

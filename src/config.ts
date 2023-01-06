@@ -10,7 +10,9 @@ export default {
   conversation: {
     // which persona to use for conversations see `src/domain/persona/index.ts`
     personaConfigName: "slack-software-eng",
-    // ends the conversation when total conversation tokens goes over `maxConversationTokens`
-    maxConversationTokens: Number.MAX_SAFE_INTEGER,
+    // ends the conversation when sum of total tokens goes over `maximumSpentTokens`
+    // all summarization and completion requests are counted towards the total tokens
+    // persona adds overhead to each request
+    maximumSpentTokens: Number.MAX_SAFE_INTEGER,
   },
 };

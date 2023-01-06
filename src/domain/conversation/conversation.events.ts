@@ -31,6 +31,7 @@ export type BotResponseAdded = BaseEvent & {
     text: string;
     tokens: number;
   };
+  totalTokensSpent: number;
 };
 
 export type ConversationEnded = BaseEvent & {
@@ -38,8 +39,8 @@ export type ConversationEnded = BaseEvent & {
   reason:
     | {
         type: "MAXIMUM_CONVERSATION_TOKENS_REACHED";
-        maxConversationTokens: number;
-        totalTokens: number;
+        maximumSpentTokens: number;
+        totalTokensSpent: number;
       }
     | {
         type: "BOT_RESPONSE_ERROR";

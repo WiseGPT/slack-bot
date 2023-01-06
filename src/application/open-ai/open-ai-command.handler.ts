@@ -40,7 +40,8 @@ export class OpenAICommandHandler {
         message: text,
         // We rely on the fact that only 1 completion is done, this number could be wrong
         // if we used `best_of` and `n` parameters.
-        tokens: usage.completionTokens,
+        messageTokens: usage.completionTokens,
+        totalTokensSpent: usage.totalTokens,
       });
     } catch (err: any) {
       await this.conversationCommandBus.send({

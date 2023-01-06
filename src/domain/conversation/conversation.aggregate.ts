@@ -37,7 +37,7 @@ export class ConversationAggregate {
   private status: ConversationStatus;
   private readonly messages: ConversationMessage[];
   private aiStatus: ConversationAIStatus;
-  private totalTokens: number;
+  private totalTokensSpent: number;
 
   private newEvents: ConversationEvent[] = [];
 
@@ -49,7 +49,7 @@ export class ConversationAggregate {
     this.status = { status: "ONGOING" };
     this.messages = [];
     this.aiStatus = { status: "IDLE" };
-    this.totalTokens = 0;
+    this.totalTokensSpent = 0;
 
     if (createEvent) {
       this.createAndApply(createEvent);
@@ -121,8 +121,9 @@ export class ConversationAggregate {
           message: {
             id: cmd.correlationId,
             text: cmd.message,
-            tokens: cmd.tokens,
+            tokens: cmd.messageTokens,
           },
+          totalTokensSpent: cmd.totalTokensSpent,
         });
 
         this.endConversationIfWentOverLimit();
@@ -166,14 +167,14 @@ export class ConversationAggregate {
   }
 
   private endConversationIfWentOverLimit(): boolean {
-    if (this.totalTokens > config.conversation.maxConversationTokens) {
+    if (this.totalTokensSpent > config.conversation.maximumSpentTokens) {
       this.createAndApply({
         type: "CONVERSATION_ENDED",
         conversationId: this.conversationId,
         reason: {
           type: "MAXIMUM_CONVERSATION_TOKENS_REACHED",
-          maxConversationTokens: config.conversation.maxConversationTokens,
-          totalTokens: this.totalTokens,
+          maximumSpentTokens: config.conversation.maximumSpentTokens,
+          totalTokensSpent: this.totalTokensSpent,
         },
       });
 
@@ -185,13 +186,12 @@ export class ConversationAggregate {
 
   private addConversationMessage({
     message,
-    tokens,
-  }: {
+  }: // tokens,
+  {
     message: ConversationMessage;
     tokens: number;
   }): void {
     this.messages.push(message);
-    this.totalTokens += tokens;
   }
 
   private createAndApply(
@@ -223,6 +223,7 @@ export class ConversationAggregate {
     switch (event.type) {
       case "BOT_RESPONSE_ADDED": {
         this.aiStatus = { status: "IDLE" };
+        this.totalTokensSpent += event.totalTokensSpent;
 
         return this.addConversationMessage({
           message: {

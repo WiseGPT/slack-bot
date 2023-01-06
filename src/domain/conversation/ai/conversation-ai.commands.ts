@@ -1,4 +1,4 @@
-import { Message } from "@wisegpt/gpt-conversation-prompt";
+import { Conversation } from "@wisegpt/gpt-conversation-prompt";
 
 type BaseCommand = {
   conversationId: string;
@@ -7,7 +7,14 @@ type BaseCommand = {
 
 export type TriggerCompletionCommand = BaseCommand & {
   type: "TRIGGER_COMPLETION_COMMAND";
-  messages: Message[];
+  conversation: Conversation;
 };
 
-export type ConversationAICommand = TriggerCompletionCommand;
+export type TriggerSummaryCommand = BaseCommand & {
+  type: "TRIGGER_SUMMARY_COMMAND";
+  conversation: Conversation;
+};
+
+export type ConversationAICommand =
+  | TriggerCompletionCommand
+  | TriggerSummaryCommand;

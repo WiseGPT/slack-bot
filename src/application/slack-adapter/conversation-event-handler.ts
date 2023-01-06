@@ -1,7 +1,7 @@
 import { WebClient } from "@slack/web-api";
 import {
   BotResponseAdded,
-  BotResponseRequested,
+  BotCompletionRequested,
   ConversationEnded,
   ConversationEvent,
   ConversationStarted,
@@ -20,8 +20,8 @@ export class ConversationEventHandler {
     switch (event.type) {
       case "CONVERSATION_STARTED":
         return this.handleConversationStarted(event);
-      case "BOT_RESPONSE_REQUESTED":
-        return this.handleBotResponseRequested(event);
+      case "BOT_COMPLETION_REQUESTED":
+        return this.handleBotCompletionRequested(event);
       case "BOT_RESPONSE_ADDED":
         return this.handleBotResponseAdded(event);
       case "CONVERSATION_ENDED":
@@ -43,8 +43,8 @@ export class ConversationEventHandler {
     });
   }
 
-  private async handleBotResponseRequested(
-    event: BotResponseRequested
+  private async handleBotCompletionRequested(
+    event: BotCompletionRequested
   ): Promise<void> {
     const [view, slackService] = await Promise.all([
       this.getOrFailByConversationId(event.conversationId),
@@ -98,7 +98,7 @@ export class ConversationEventHandler {
 
     await this.repository.update(updatedView);
 
-    if (event.reason.type === "BOT_RESPONSE_ERROR") {
+    if (event.reason.type === "BOT_COMPLETION_ERROR") {
       await this.completeBotMessage({
         view: updatedView,
         slackService,

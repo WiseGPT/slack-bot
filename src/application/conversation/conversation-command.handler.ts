@@ -6,6 +6,7 @@ import {
   ConversationCommand,
   CreateConversationCommand,
   ProcessCompletionResponseCommand,
+  ProcessSummaryResponseCommand,
 } from "../../domain/conversation/conversation.commands";
 import { ConversationAggregateDynamodbRepository } from "../../infrastructure/dynamodb/conversation-aggregate-dynamodb.repository";
 import { OpenAILambdaInvoke } from "../../infrastructure/lambdas/invoke/open-ai-lambda-invoke";
@@ -29,6 +30,8 @@ export class ConversationCommandHandler {
         return this.executeAddUserMessage(cmd);
       case "PROCESS_COMPLETION_RESPONSE_COMMAND":
         return this.executeProcessCompletionResponse(cmd);
+      case "PROCESS_SUMMARY_RESPONSE_COMMAND":
+        return this.executeProcessSummaryResponse(cmd);
       default:
         return assertUnreachable(cmd);
     }
@@ -71,8 +74,18 @@ export class ConversationCommandHandler {
   ): Promise<void> {
     return this.transaction(
       cmd.conversationId,
-      async (aggregate: ConversationAggregate) =>
-        aggregate.processCompletionResponse(cmd)
+      (aggregate: ConversationAggregate) =>
+        aggregate.processCompletionResponse(cmd, this.conversationAIService)
+    );
+  }
+
+  private async executeProcessSummaryResponse(
+    cmd: ProcessSummaryResponseCommand
+  ): Promise<void> {
+    return this.transaction(
+      cmd.conversationId,
+      (aggregate: ConversationAggregate) =>
+        aggregate.processSummaryResponse(cmd, this.conversationAIService)
     );
   }
 

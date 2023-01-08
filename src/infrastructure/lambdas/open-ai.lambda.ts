@@ -10,7 +10,31 @@ class OpenAILambda extends AsyncLambda<ConversationAICommand> {
   }
 
   async handle(cmd: ConversationAICommand): Promise<void> {
-    await this.openAICommandHandler.handle(cmd);
+    try {
+      // TODO: make debug logging better and count usage with proper metrics
+      console.log(
+        JSON.stringify({
+          cmd: {
+            conversation: {
+              summarySize: cmd.conversation.summary?.length,
+              messagesCount: cmd.conversation.messages.length,
+            },
+          },
+        })
+      );
+
+      await this.openAICommandHandler.handle(cmd);
+    } catch (err: any) {
+      // TODO: add better error handling, DLQ etc.
+      console.error(
+        JSON.stringify({
+          ...this.baseProps,
+          method: "handle",
+          // TODO: add better logger
+          err: JSON.parse(JSON.stringify(err, Object.getOwnPropertyNames(err))),
+        })
+      );
+    }
   }
 }
 

@@ -34,19 +34,6 @@ export class OpenAICommandHandler {
     cmd: TriggerCompletionCommand
   ): Promise<void> {
     try {
-      // TODO: make debug logging better and count usage with proper metrics
-      console.log(
-        JSON.stringify({
-          cmd: {
-            ...cmd,
-            conversation: {
-              summarySize: cmd.conversation.summary?.length,
-              messagesCount: cmd.conversation.messages.length,
-            },
-          },
-        })
-      );
-
       const { text, usage } = await this.openAIService.completion(
         cmd.conversation
       );
@@ -72,6 +59,8 @@ export class OpenAICommandHandler {
           message: err.message,
         },
       });
+
+      throw err;
     }
   }
 
@@ -79,19 +68,6 @@ export class OpenAICommandHandler {
     cmd: TriggerSummaryCommand
   ): Promise<void> {
     try {
-      // TODO: make debug logging better and count usage with proper metrics
-      console.log(
-        JSON.stringify({
-          cmd: {
-            ...cmd,
-            conversation: {
-              summarySize: cmd.conversation.summary?.length,
-              messagesCount: cmd.conversation.messages.length,
-            },
-          },
-        })
-      );
-
       const { summary, usage } = await this.openAIService.summary(
         cmd.conversation
       );
@@ -117,6 +93,8 @@ export class OpenAICommandHandler {
           message: err.message,
         },
       });
+
+      throw err;
     }
   }
 }

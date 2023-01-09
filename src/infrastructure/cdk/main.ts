@@ -36,9 +36,7 @@ export class MyStack extends Stack {
       config.aws.secretArn
     );
 
-    const slackEventBus = new SlackEventBus(this, "SlackEventBus", {
-      tokenSecret: secret,
-    });
+    const slackEventBus = new SlackEventBus(this, "SlackEventBus", { secret });
 
     const slackConversationViewTable = new Table(
       this,

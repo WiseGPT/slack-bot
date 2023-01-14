@@ -3,10 +3,10 @@ import {
   ConversationCompleteOutput,
   ConversationSummaryOutput,
 } from "@wisegpt/gpt-conversation-prompt";
+import { ConversationPromptServiceFactory } from "./conversation-prompt-service.factory";
 import config from "../../config";
 import { getPersonaByConfigName } from "../../domain/persona";
 import { Persona } from "../../domain/persona/base-persona/base-persona.dto";
-import { ConversationPromptServiceFactory } from "./conversation-prompt-service.factory";
 
 export class OpenAIService {
   constructor(

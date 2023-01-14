@@ -19,8 +19,8 @@ import {
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { DeduplicationScope, Queue } from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
-import config from "../../config";
 import { CustomNodejsFunction } from "./custom-nodejs-function";
+import config from "../../config";
 
 const CONVERSATION_ID_INDEX_NAME = "CONVERSATION_ID_INDEX";
 const CONVERSATION_LAMBDA_TIMEOUT = Duration.seconds(15);

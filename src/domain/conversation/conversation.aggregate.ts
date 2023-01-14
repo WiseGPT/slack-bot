@@ -1,4 +1,3 @@
-import config from "../../config";
 import { ConversationAIService } from "./ai/conversation-ai.service";
 import {
   AddUserMessageCommand,
@@ -17,6 +16,7 @@ import {
   ConversationStarted,
 } from "./conversation.events";
 import { gpt3TokenCount } from "./gpt3-token-count";
+import config from "../../config";
 
 export class ConversationAggregate {
   static create(

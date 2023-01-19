@@ -18,9 +18,9 @@ export default {
     summarization: {
       // minimum amount the token sum of all human/bot messages (since last summarization) should reach
       // the summary size itself is not included into this count
-      minimumTokens: 500,
+      minimumTokens: 3000,
       // minimum amount of user messages since last summarization
-      minimumUserMessages: 2,
+      minimumUserMessages: 4,
     },
   },
 };

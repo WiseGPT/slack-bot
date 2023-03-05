@@ -1,4 +1,5 @@
 import { resolve } from "path";
+import * as apigwv2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import { SlackEventBus } from "@wisegpt/awscdk-slack-event-bus";
 import {
   App,
@@ -36,7 +37,18 @@ export class MyStack extends Stack {
       config.aws.secretArn
     );
 
-    const slackEventBus = new SlackEventBus(this, "SlackEventBus", { secret });
+    const httpApi = new apigwv2.HttpApi(this, "HttpApi", {
+      description: "Slack Bot Http Api",
+    });
+
+    const slackEventBus = new SlackEventBus(this, "SlackEventBus", {
+      secret,
+      httpApi,
+      singleApp: {
+        appId: config.slack.appId,
+        eventsApiPath: "/slack/events",
+      },
+    });
 
     const slackConversationViewTable = new Table(
       this,

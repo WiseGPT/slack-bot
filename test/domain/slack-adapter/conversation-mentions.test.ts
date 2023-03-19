@@ -14,7 +14,7 @@ describe("mentions", () => {
       };
 
       expect(prepareForConversationDomain(input)).toMatchInlineSnapshot(
-        `"hey <@bot>! how is it going? '<@bot>'"`
+        `"hey <@assistant>! how is it going? '<@assistant>'"`
       );
     });
   });

@@ -34,7 +34,7 @@ export class OpenAICommandHandler {
     cmd: TriggerCompletionCommand
   ): Promise<void> {
     try {
-      const { text, usage } = await this.openAIService.completion(
+      const { text, usage } = await this.openAIService.chatCompletion(
         cmd.conversation
       );
 

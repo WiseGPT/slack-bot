@@ -1,4 +1,4 @@
-import { BOT_MENTION } from "@wisegpt/gpt-conversation-prompt";
+import { ASSISTANT_MENTION } from "@wisegpt/gpt-conversation-prompt";
 import {
   prepareForConversationDomain,
   prepareForSlack,
@@ -23,7 +23,7 @@ describe("mentions", () => {
     it("should replace all ocurrences", () => {
       const botUserId = "U01";
       const input = {
-        text: `hey ${BOT_MENTION}! how is it going? '${BOT_MENTION}'`,
+        text: `hey ${ASSISTANT_MENTION}! how is it going? '${ASSISTANT_MENTION}'`,
         botUserId,
       };
 

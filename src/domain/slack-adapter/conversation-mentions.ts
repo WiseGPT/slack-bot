@@ -1,6 +1,6 @@
-import { BOT_MENTION } from "@wisegpt/gpt-conversation-prompt";
+import { ASSISTANT_MENTION } from "@wisegpt/gpt-conversation-prompt";
 
-const BOT_MENTION_REGEX = new RegExp(BOT_MENTION, "g");
+const ASSISTANT_MENTION_REGEX = new RegExp(ASSISTANT_MENTION, "g");
 
 export function prepareForConversationDomain({
   text,
@@ -9,7 +9,7 @@ export function prepareForConversationDomain({
   text: string;
   botUserId: string;
 }) {
-  return text.replace(new RegExp(`<@${botUserId}>`, "g"), BOT_MENTION);
+  return text.replace(new RegExp(`<@${botUserId}>`, "g"), ASSISTANT_MENTION);
 }
 
 export function prepareForSlack({
@@ -19,5 +19,5 @@ export function prepareForSlack({
   text: string;
   botUserId: string;
 }): string {
-  return text.replace(BOT_MENTION_REGEX, `<@${botUserId}>`);
+  return text.replace(ASSISTANT_MENTION_REGEX, `<@${botUserId}>`);
 }

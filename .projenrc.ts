@@ -1,7 +1,9 @@
 import { awscdk, javascript } from "projen";
 
+const MIN_CDK_VERSION = "2.69.0";
+
 const project = new awscdk.AwsCdkTypeScriptApp({
-  cdkVersion: "2.58.0",
+  cdkVersion: MIN_CDK_VERSION,
   defaultReleaseBranch: "main",
   appEntrypoint: "infrastructure/cdk/main.ts",
 
@@ -28,7 +30,7 @@ const project = new awscdk.AwsCdkTypeScriptApp({
     "@aws-sdk/lib-dynamodb",
     "@aws-sdk/client-sqs",
     "@aws-sdk/client-lambda",
-    "@aws-cdk/aws-apigatewayv2-alpha",
+    `@aws-cdk/aws-apigatewayv2-alpha@${MIN_CDK_VERSION}-alpha.0`,
     "@slack/web-api",
     "openai",
     "gpt3-tokenizer",

@@ -1,4 +1,4 @@
-import { BOT_MENTION } from "@wisegpt/gpt-conversation-prompt";
+import { ASSISTANT_MENTION } from "@wisegpt/gpt-conversation-prompt";
 import {
   prepareForConversationDomain,
   prepareForSlack,
@@ -14,7 +14,7 @@ describe("mentions", () => {
       };
 
       expect(prepareForConversationDomain(input)).toMatchInlineSnapshot(
-        `"hey <@bot>! how is it going? '<@bot>'"`
+        `"hey <@assistant>! how is it going? '<@assistant>'"`
       );
     });
   });
@@ -23,7 +23,7 @@ describe("mentions", () => {
     it("should replace all ocurrences", () => {
       const botUserId = "U01";
       const input = {
-        text: `hey ${BOT_MENTION}! how is it going? '${BOT_MENTION}'`,
+        text: `hey ${ASSISTANT_MENTION}! how is it going? '${ASSISTANT_MENTION}'`,
         botUserId,
       };
 

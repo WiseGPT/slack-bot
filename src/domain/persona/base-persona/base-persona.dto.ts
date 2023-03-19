@@ -5,5 +5,6 @@ import {
 
 export type Persona = AIPersona & {
   configName: string;
-  modelConfiguration: ModelConfiguration;
+  chatModelConfiguration: ModelConfiguration;
+  summaryModelConfiguration: ModelConfiguration;
 };

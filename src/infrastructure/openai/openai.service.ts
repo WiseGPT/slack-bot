@@ -16,18 +16,18 @@ export class OpenAIService {
     )
   ) {}
 
-  async completion(
+  async chatCompletion(
     conversation: Conversation
   ): Promise<ConversationCompleteOutput> {
     const conversationPromptService =
       await this.conversationPromptServiceFactory.createWithCache();
 
-    return conversationPromptService.completion({
+    return conversationPromptService.chatCompletion({
       prompt: {
         conversation: conversation,
         aiPersona: this.persona,
       },
-      modelConfiguration: this.persona.modelConfiguration,
+      modelConfiguration: this.persona.chatModelConfiguration,
     });
   }
 
@@ -42,7 +42,7 @@ export class OpenAIService {
         conversation: conversation,
         aiPersona: this.persona,
       },
-      modelConfiguration: this.persona.modelConfiguration,
+      modelConfiguration: this.persona.summaryModelConfiguration,
     });
   }
 }

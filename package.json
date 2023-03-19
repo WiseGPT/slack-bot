@@ -61,7 +61,7 @@
     "@aws-sdk/lib-dynamodb": "^3.294.0",
     "@slack/web-api": "^6.8.1",
     "@wisegpt/awscdk-slack-event-bus": "^1.1.0",
-    "@wisegpt/gpt-conversation-prompt": "^0.0.9",
+    "@wisegpt/gpt-conversation-prompt": "^0.0.11",
     "aws-cdk-lib": "^2.69.0",
     "constructs": "^10.0.5",
     "gpt3-tokenizer": "^1.1.5",

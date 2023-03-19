@@ -1,6 +1,7 @@
 import { QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { CrudDynamodbRepository } from "./crud-dynamodb-repository";
-import { SlackConversationView } from "../../domain/slack-adapter/slack-adapter.dto";
+import { SlackConversationView } from "../../../domain/slack-adapter/slack-adapter.dto";
+import { getEnv } from "../../../env";
+import { CrudDynamodbRepository } from "../crud/crud-dynamodb-repository";
 
 type DatabaseEntity = Omit<
   SlackConversationView,
@@ -21,10 +22,12 @@ export class SlackConversationDynamodbRepository extends CrudDynamodbRepository<
   SlackConversationView,
   DatabaseEntity
 > {
-  private static readonly TABLE_NAME =
-    process.env.DYNAMODB_TABLE_SLACK_CONVERSATION_VIEW!;
-  private static readonly CONVERSATION_ID_INDEX =
-    process.env.DYNAMODB_INDEX_VIEW_CONVERSATION_ID!;
+  private static readonly TABLE_NAME = getEnv(
+    "DYNAMODB_TABLE_SLACK_CONVERSATION_VIEW"
+  );
+  private static readonly CONVERSATION_ID_INDEX = getEnv(
+    "DYNAMODB_INDEX_VIEW_CONVERSATION_ID"
+  );
   private static readonly PRIMARY_KEY = "threadId";
   private static readonly CONVERSATION_ID_FIELD = "conversationId";
 

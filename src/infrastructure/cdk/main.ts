@@ -1,29 +1,21 @@
 import { resolve } from "path";
 import * as apigwv2 from "@aws-cdk/aws-apigatewayv2-alpha";
-import { SlackEventBus } from "@wisegpt/awscdk-slack-event-bus";
 import {
   App,
-  aws_events as Events,
-  aws_events_targets as EventsTargets,
   aws_lambda_event_sources as LambdaEventSources,
-  CfnOutput,
   Duration,
   Stack,
   StackProps,
 } from "aws-cdk-lib";
-import {
-  AttributeType,
-  BillingMode,
-  ProjectionType,
-  Table,
-} from "aws-cdk-lib/aws-dynamodb";
+import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { DeduplicationScope, Queue } from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 import { CustomNodejsFunction } from "./custom-nodejs-function";
+import { SlackResources } from "./slack-resources";
 import config from "../../config";
+import { EnvKey } from "../../env";
 
-const CONVERSATION_ID_INDEX_NAME = "CONVERSATION_ID_INDEX";
 const CONVERSATION_LAMBDA_TIMEOUT = Duration.seconds(15);
 const OPENAI_LAMBDA_TIMEOUT = Duration.seconds(30);
 
@@ -39,30 +31,6 @@ export class MyStack extends Stack {
 
     const httpApi = new apigwv2.HttpApi(this, "HttpApi", {
       description: "Slack Bot Http Api",
-    });
-
-    const slackEventBus = new SlackEventBus(this, "SlackEventBus", {
-      secret,
-      httpApi,
-      singleApp: {
-        appId: config.slack.appId,
-        eventsApiPath: "/slack/events",
-      },
-    });
-
-    const slackConversationViewTable = new Table(
-      this,
-      "SlackConversationViewTable",
-      {
-        partitionKey: { name: "threadId", type: AttributeType.STRING },
-        billingMode: BillingMode.PAY_PER_REQUEST,
-      }
-    );
-
-    slackConversationViewTable.addGlobalSecondaryIndex({
-      indexName: CONVERSATION_ID_INDEX_NAME,
-      projectionType: ProjectionType.ALL,
-      partitionKey: { name: "conversationId", type: AttributeType.STRING },
     });
 
     const conversationAggregateTable = new Table(
@@ -90,22 +58,14 @@ export class MyStack extends Stack {
       contentBasedDeduplication: true,
     });
 
-    const slackAdapterLambda = new CustomNodejsFunction(
-      this,
-      "SlackAdapterLambda",
-      {
-        entry: resolve(__dirname, "../lambdas/slack-adapter.lambda.ts"),
-        description:
-          "Listens an processes Slack Events API events and Conversation API events",
-        environment: {
-          SLACK_SECRET_ARN: secret.secretArn,
-          COMMAND_BUS_SQS: conversationCommandSQS.queueUrl,
-          DYNAMODB_TABLE_SLACK_CONVERSATION_VIEW:
-            slackConversationViewTable.tableName,
-          DYNAMODB_INDEX_VIEW_CONVERSATION_ID: CONVERSATION_ID_INDEX_NAME,
-        },
-      }
-    );
+    new SlackResources(this, {
+      appId: config.slack.appId,
+      authType: config.slack.authType,
+      secret,
+      httpApi,
+      conversationCommandSQS,
+      conversationEventSQS,
+    });
 
     const openAILambda = new CustomNodejsFunction(this, "OpenAILambda", {
       entry: resolve(__dirname, "../lambdas/open-ai.lambda.ts"),
@@ -115,7 +75,7 @@ export class MyStack extends Stack {
       environment: {
         OPENAI_SECRET_ARN: secret.secretArn,
         COMMAND_BUS_SQS: conversationCommandSQS.queueUrl,
-      },
+      } as Record<EnvKey, string>,
     });
 
     const conversationLambda = new CustomNodejsFunction(
@@ -130,14 +90,9 @@ export class MyStack extends Stack {
           DYNAMODB_TABLE_CONVERSATION_AGGREGATE:
             conversationAggregateTable.tableName,
           OPENAI_LAMBDA_ARN: openAILambda.functionArn,
-        },
+        } as Record<EnvKey, string>,
       }
     );
-
-    // slack adapter permissions
-    secret.grantRead(slackAdapterLambda);
-    slackConversationViewTable.grantReadWriteData(slackAdapterLambda);
-    conversationCommandSQS.grantSendMessages(slackAdapterLambda);
 
     // openai lambda permissions
     secret.grantRead(openAILambda);
@@ -148,24 +103,6 @@ export class MyStack extends Stack {
     conversationEventSQS.grantSendMessages(conversationLambda);
     openAILambda.grantInvoke(conversationLambda);
 
-    // bind slack adapter to queues
-    new Events.Rule(this, "SlackEventRule", {
-      enabled: true,
-      eventPattern: {
-        source: ["com.slack"],
-        detailType: ["EventCallback.message"],
-      },
-      targets: [new EventsTargets.LambdaFunction(slackAdapterLambda)],
-      eventBus: slackEventBus.eventBus,
-    });
-
-    slackAdapterLambda.addEventSource(
-      new LambdaEventSources.SqsEventSource(conversationEventSQS, {
-        enabled: true,
-        batchSize: 1,
-      })
-    );
-
     // bind conversation api to queues
     conversationLambda.addEventSource(
       new LambdaEventSources.SqsEventSource(conversationCommandSQS, {
@@ -173,11 +110,6 @@ export class MyStack extends Stack {
         batchSize: 1,
       })
     );
-
-    new CfnOutput(this, "SlackEventRequestUrl", {
-      value: slackEventBus.slackEventsRequestUrl(config.slack.appId),
-      description: "Slack Events Request Url to use in Slack API Dashboard",
-    });
   }
 }
 

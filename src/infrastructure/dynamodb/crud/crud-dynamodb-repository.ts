@@ -1,9 +1,5 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-} from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { defaultDynamoDBDocumentClient } from "./dynamodb-clients";
 
 type CrudDynamodbRepositoryConfig = {
   tableName: string;
@@ -16,9 +12,7 @@ export abstract class CrudDynamodbRepository<
 > {
   protected constructor(
     protected readonly config: CrudDynamodbRepositoryConfig,
-    protected readonly client = DynamoDBDocumentClient.from(
-      new DynamoDBClient({})
-    )
+    protected readonly client = defaultDynamoDBDocumentClient
   ) {}
 
   async getById(id: string): Promise<TDomainEntity | undefined> {

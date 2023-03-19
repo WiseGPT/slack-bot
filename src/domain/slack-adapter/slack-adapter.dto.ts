@@ -30,10 +30,12 @@ export type SlackMessageEventWithEnvelope = SlackEventEnvelope<
   }
 >;
 
+export type TeamId = string;
 export type ThreadId = string;
 
 export type SlackConversationView = {
   conversationId: string;
+  teamId: TeamId;
   threadId: ThreadId;
   channel: string;
   status: "CREATED" | "COMPLETED";

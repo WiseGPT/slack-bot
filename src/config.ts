@@ -1,11 +1,14 @@
+type SlackAuthType = "TOKEN_BASED" | "OAUTH_BASED";
+
 export default {
   slack: {
     appId: "A04G99ST35L",
+    authType: "TOKEN_BASED" as SlackAuthType,
   },
   aws: {
     stackName: "wisegpt-slack-bot",
     secretArn:
-      "arn:aws:secretsmanager:eu-west-1:197771300946:secret:wisegpt-bot-3yGDD6",
+      "arn:aws:secretsmanager:eu-west-1:197771300946:secret:wisegpt-slack-app-NHpivT",
   },
   conversation: {
     // which persona to use for conversations see `src/domain/persona/index.ts`

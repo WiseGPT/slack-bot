@@ -49,9 +49,20 @@ export abstract class EventListenerLambda<
       return this.handleEventBridgeEvent(event, context);
     } else if (Array.isArray(event.Records)) {
       return this.handleSQSEvent(event, context);
+    } else if (event.rawPath && event.headers) {
+      return this.handleAPIGatewayProxyEvent(event, context);
     }
 
     throw new Error("unknown error, not event bridge nor sqs event");
+  }
+
+  protected handleAPIGatewayProxyEvent(
+    _event: Lambda.APIGatewayProxyEventV2,
+    _context: Lambda.Context
+  ): Promise<Lambda.APIGatewayProxyStructuredResultV2> {
+    throw new Error(
+      `Lambda '${this.baseProps.lambdaName}' did not override #handleAPIGatewayProxyEvent()`
+    );
   }
 
   protected handleEventBridgeEvent(

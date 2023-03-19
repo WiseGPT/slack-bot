@@ -4,7 +4,7 @@ import { CommandBus, globalCommandBus } from "../../domain/bus/command-bus";
 import { ConversationCommand } from "../../domain/conversation/conversation.commands";
 import { prepareForConversationDomain } from "../../domain/slack-adapter/conversation-mentions";
 import { SlackMessageEventWithEnvelope } from "../../domain/slack-adapter/slack-adapter.dto";
-import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack-conversation-dynamodb.repository";
+import { SlackConversationDynamodbRepository } from "../../infrastructure/dynamodb/slack/slack-conversation-dynamodb.repository";
 
 export class SlackEventHandler {
   private static tryGetMessageStartingMention(
@@ -119,6 +119,7 @@ export class SlackEventHandler {
       },
       metadata: {
         botUserId,
+        teamId: event.team,
         threadId: ts,
         channel: event.channel,
       },

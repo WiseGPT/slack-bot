@@ -6,9 +6,10 @@ import {
 } from "@aws-sdk/client-lambda";
 import { ConversationAICommand } from "../../../domain/conversation/ai/conversation-ai.commands";
 import { ConversationAIService } from "../../../domain/conversation/ai/conversation-ai.service";
+import { getEnv } from "../../../env";
 
 export class OpenAILambdaInvoke implements ConversationAIService {
-  private static readonly LAMBDA_ARN = process.env.OPENAI_LAMBDA_ARN;
+  private static readonly LAMBDA_ARN = getEnv("OPENAI_LAMBDA_ARN");
 
   constructor(private readonly client = new LambdaClient({})) {}
 

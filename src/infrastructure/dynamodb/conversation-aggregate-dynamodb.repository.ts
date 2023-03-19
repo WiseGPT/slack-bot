@@ -1,14 +1,16 @@
 import {
-  DynamoDBClient,
   QueryCommand,
   TransactWriteItem,
   TransactWriteItemsCommand,
 } from "@aws-sdk/client-dynamodb";
+import { defaultDynamoDBClient } from "./crud/dynamodb-clients";
 import { ConversationAggregate } from "../../domain/conversation/conversation.aggregate";
+import { getEnv } from "../../env";
 
 export class ConversationAggregateDynamodbRepository {
-  private static readonly TABLE_NAME =
-    process.env.DYNAMODB_TABLE_CONVERSATION_AGGREGATE!;
+  private static readonly TABLE_NAME = getEnv(
+    "DYNAMODB_TABLE_CONVERSATION_AGGREGATE"
+  );
   private static readonly PK = "PK";
   private static readonly SK = "SK";
 
@@ -16,7 +18,7 @@ export class ConversationAggregateDynamodbRepository {
     return `EVENT#${conversationId}`;
   }
 
-  constructor(protected readonly client = new DynamoDBClient({})) {}
+  constructor(protected readonly client = defaultDynamoDBClient) {}
 
   async load(
     conversationId: string

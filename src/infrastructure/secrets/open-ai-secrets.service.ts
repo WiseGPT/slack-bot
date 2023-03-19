@@ -1,7 +1,8 @@
 import { SecretsManagerAdapter } from "./secrets-manager-adapter";
+import { getEnv } from "../../env";
 
 export class OpenAiSecretsService {
-  private static readonly OPEN_AI_SECRET_ARN = process.env.OPENAI_SECRET_ARN!;
+  private static readonly OPEN_AI_SECRET_ARN = getEnv("OPENAI_SECRET_ARN");
   private static readonly SECRET_KEY_PATH = "open-ai/secret-key";
   private static readonly SECRET_TTL = 60 * 1000;
 

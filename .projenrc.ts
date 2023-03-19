@@ -31,11 +31,17 @@ const project = new awscdk.AwsCdkTypeScriptApp({
     "@aws-sdk/client-sqs",
     "@aws-sdk/client-lambda",
     `@aws-cdk/aws-apigatewayv2-alpha@${MIN_CDK_VERSION}-alpha.0`,
+    `@aws-cdk/aws-apigatewayv2-integrations-alpha@^${MIN_CDK_VERSION}-alpha.0`,
     "@slack/web-api",
     "openai",
     "gpt3-tokenizer",
   ],
-  devDeps: ["@types/aws-lambda"],
+  devDeps: [
+    "@types/aws-lambda",
+    // 'undici' is added as a dev dependency for;
+    // missing type support of fetch see src/global.d.ts
+    "undici",
+  ],
 });
 
 project.synth();

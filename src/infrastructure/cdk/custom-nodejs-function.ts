@@ -4,11 +4,12 @@ import {
   NodejsFunctionProps,
 } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
+import { EnvKey } from "../../env";
 
 export type CustomNodejsFunctionProps = Pick<
   NodejsFunctionProps,
-  "entry" | "description" | "environment" | "timeout"
->;
+  "entry" | "description" | "timeout"
+> & { environment: Record<EnvKey, string> };
 
 export class CustomNodejsFunction extends NodejsFunction {
   constructor(scope: Construct, id: string, props: CustomNodejsFunctionProps) {

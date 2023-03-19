@@ -97,8 +97,17 @@
       "type": "build"
     },
     {
+      "name": "undici",
+      "type": "build"
+    },
+    {
       "name": "@aws-cdk/aws-apigatewayv2-alpha",
       "version": "2.69.0-alpha.0",
+      "type": "runtime"
+    },
+    {
+      "name": "@aws-cdk/aws-apigatewayv2-integrations-alpha",
+      "version": "^2.69.0-alpha.0",
       "type": "runtime"
     },
     {
